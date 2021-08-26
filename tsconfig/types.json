@@ -1,0 +1,14 @@
+{
+  "extends": "./esm.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "esnext",
+    "target": "esnext",
+    "removeComments": false,
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "../lib/types",
+    "emitDeclarationOnly": true
+  },
+  "exclude": ["../src/**/*.test.ts"]
+}

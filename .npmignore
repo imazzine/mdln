@@ -1,0 +1,11 @@
+./coverage
+./docs
+./jest
+./src
+./tsconfig
+./.eslintrc
+./.gitignore
+./.jestrc.js
+./.npmignore
+./.prettierrc.js
+./tsconfig.json

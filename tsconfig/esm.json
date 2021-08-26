@@ -1,0 +1,11 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "importHelpers": true,
+    "target": "esnext",
+    "downlevelIteration": true,
+    "outDir": "../lib/esm"
+  },
+  "exclude": ["../src/**/*.test.ts"]
+}

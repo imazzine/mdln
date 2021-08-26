@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": ".",
+    "target": "esnext",
+    "moduleResolution": "node",
+    "incremental": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitReturns": true,
+    "stripInternal": true,
+    "noEmit": true,
+    "lib": [ "esnext", "dom" ],
+    "resolveJsonModule": true
+  }
+}

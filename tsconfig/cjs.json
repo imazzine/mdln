@@ -1,0 +1,10 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "esnext",
+    "downlevelIteration": true,
+    "outDir": "../lib/cjs"
+  },
+  "exclude": ["../src/**/*.test.ts"]
+}

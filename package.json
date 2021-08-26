@@ -1,0 +1,51 @@
+{
+  "name": "mdln",
+  "version": "0.0.0-alpha.0",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Artem Lytvynov",
+    "email": "buntarb@gmail.com"
+  },
+  "homepage": "https://github.com/imazzine/core",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:imazzine/core.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "devDependencies": {
+    "@jest/types": "^27.0.1",
+    "@types/node": "^15.6.1",
+    "@types/jest": "^26.0.23",
+    "@types/uuid": "^8.3.0",
+    "@typescript-eslint/eslint-plugin": "^4.25.0",
+    "@typescript-eslint/parser": "^4.25.0",
+    "coveralls": "^3.1.0",
+    "eslint": "^7.27.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-loader": "^4.0.2",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.23.3",
+    "eslint-plugin-prettier": "^3.4.0",
+    "jest": "^26.6.3",
+    "prettier": "^2.3.0",
+    "ts-node": "^10.0.0",
+    "typedoc": "^0.20.36",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "uuid": "^8.3.2"
+  },
+  "scripts": {
+    "lint": "node ./node_modules/.bin/eslint -c ./.eslintrc.js 'src/**/*.ts'",
+    "compile": "rm -rf lib && tsc -b ./tsconfig/cjs.json ./tsconfig/esm.json ./tsconfig/types.json && mv lib/types/src/* lib/types/ && rm -d lib/types/src && mv lib/cjs/src/* lib/cjs/ && rm -d lib/cjs/src && mv lib/esm/src/* lib/esm/ && rm -d lib/esm/src && find ./lib -type f -name *.tsbuildinfo -delete && find ./lib -type d -name tsconfig -delete",
+    "test": "tsc -b ./tsconfig/jest.json && node_modules/.bin/jest --config ./.jestrc.js",
+    "docs": "./node_modules/.bin/typedoc ./src/index.ts --out ./docs --includes ./",
+    "build": "npm run lint && npm run test -- --coverage && npm run compile && npm run docs"
+  },
+  "types": "lib/types/index.d.ts",
+  "module": "lib/esm/index.js",
+  "main": "lib/cjs/index.js"
+}
