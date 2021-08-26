@@ -1,15 +1,15 @@
 {
   "name": "mdln",
-  "version": "0.0.0-alpha.0",
+  "version": "0.0.0-alpha.1",
   "license": "Apache-2.0",
   "author": {
     "name": "Artem Lytvynov",
     "email": "buntarb@gmail.com"
   },
-  "homepage": "https://github.com/imazzine/core",
+  "homepage": "https://github.com/imazzine/mdln",
   "repository": {
     "type": "git",
-    "url": "git@github.com:imazzine/core.git"
+    "url": "git@github.com:imazzine/mdln.git"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
