@@ -3,7 +3,7 @@
 /jest
 /src
 /tsconfig
-.eslintrc
+.eslintrc.js
 .gitignore
 .jestrc.js
 .npmignore
