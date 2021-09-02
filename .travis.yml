@@ -10,13 +10,6 @@ install:
 script:
   - npm run build
   - ./node_modules/.bin/coveralls < ./coverage/lcov.info
-before_deploy:
-  - mkdir ./imazzine
-  - cd ./imazzine
-  - git clone https://${GH_TOKEN}@github.com/imazzine/mdln.git mdln
-  - cd mdln
-  - git fetch
-  - git checkout master
   
 deploy:
   provider: npm
