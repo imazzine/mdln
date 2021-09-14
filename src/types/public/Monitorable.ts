@@ -1,5 +1,6 @@
 import getUid from "../../helpers/getUid";
 import getStack from "../../helpers/getStack";
+import getInternalState from "../../helpers/getInternalState";
 import Logger from "./Logger";
 
 /**
@@ -65,7 +66,7 @@ class Monitorable {
     this.#uid = getUid();
     this.#created = Date.now();
     this.#stack = getStack("Instantiation stack");
-    this.#logger = new Logger(this.#uid);
+    this.#logger = new (getInternalState().Logger || Logger)(this.#uid);
   }
 }
 
