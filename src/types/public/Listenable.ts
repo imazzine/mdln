@@ -1,6 +1,9 @@
 import getInternalState from "../../helpers/getInternalState";
 import dispatchEvent from "../../helpers/dispatchEvent";
 import Errors from "../../enums/Errors";
+import LoggerDebugActions from "../../enums/LoggerDebugActions";
+import LoggerInfoActions from "../../enums/LoggerInfoActions";
+import LoggerTraceActions from "../../enums/LoggerTraceActions";
 import EventListener from "../internal/EventListener";
 import Disposable from "./Disposable";
 import Event from "./Event";
@@ -20,15 +23,61 @@ class Listenable extends Disposable {
    */
   constructor() {
     super();
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "constructor",
+      "entry",
+    );
+
     internal.listenersMaps.set(this, new Map());
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "listenersMaps",
+      "set",
+      this.uid,
+    );
+
+    this.logger.info(
+      LoggerInfoActions.INSTANCE_CONSTRUCTED,
+      "Listenable",
+      this.uid,
+    );
+
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "constructor",
+      "exit",
+    );
   }
 
   /**
    * @override
    */
-  protected $dispose(): void {
+  protected $_dispose(): void {
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "$_dispose",
+      "entry",
+    );
+
     internal.listenersMaps.delete(this);
-    super.$dispose();
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "listenersMaps",
+      "delete",
+      this.uid,
+    );
+
+    super.$_dispose();
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "$_dispose",
+      "exit",
+    );
   }
 
   /**
@@ -43,8 +92,16 @@ class Listenable extends Disposable {
       once?: boolean;
     },
   ): void {
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "listen",
+      "entry",
+    );
+
     const maps = internal.listenersMaps.get(this);
     if (typeof maps === "undefined") {
+      this.logger.error(1, Errors.LISTENERS_MAP_MISSED);
       throw new Error(Errors.LISTENERS_MAP_MISSED);
     }
 
@@ -70,12 +127,24 @@ class Listenable extends Disposable {
         opts.once = options.once;
       }
     }
+    this.logger.trace(
+      LoggerTraceActions.LOG_STRINGLIFIED,
+      "Listenable",
+      "listen:opts",
+      opts,
+    );
 
     let listener = null;
     let listeners = maps.get(etype);
     if (!listeners) {
       listeners = [];
       maps.set(etype, listeners);
+      this.logger.debug(
+        LoggerDebugActions.INTERNAL_CHANGED,
+        "listenersMaps",
+        "set",
+        etype,
+      );
     }
     for (let i = 0; i < listeners.length; i++) {
       if (
@@ -86,6 +155,15 @@ class Listenable extends Disposable {
         listeners[i].passive = opts.passive;
         listeners[i].once = opts.once;
         listener = listeners[i];
+        this.logger.debug(
+          LoggerDebugActions.INTERNAL_CHANGED,
+          "EventListener." + etype + "." + opts.capture ? "capture" : "bubble",
+          "update",
+          JSON.stringify({
+            passive: opts.passive,
+            once: opts.once,
+          }),
+        );
       }
     }
     if (!listener) {
@@ -96,8 +174,30 @@ class Listenable extends Disposable {
         false,
         opts.once,
       );
+      this.logger.debug(
+        LoggerDebugActions.INTERNAL_CHANGED,
+        "EventListener." + etype + "." + opts.capture ? "capture" : "bubble",
+        "construct",
+        JSON.stringify({
+          passive: opts.passive,
+          once: opts.once,
+        }),
+      );
+
       listeners.push(listener);
+      this.logger.debug(
+        LoggerDebugActions.INTERNAL_CHANGED,
+        "listenersMaps." + etype,
+        "push",
+        "EventListener." + etype + "." + opts.capture ? "capture" : "bubble",
+      );
     }
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "listen",
+      "exit",
+    );
   }
 
   /**
@@ -110,8 +210,16 @@ class Listenable extends Disposable {
       capture?: boolean;
     },
   ): void {
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "unlisten",
+      "entry",
+    );
+
     const maps = internal.listenersMaps.get(this);
     if (typeof maps === "undefined") {
+      this.logger.error(1, Errors.LISTENERS_MAP_MISSED);
       throw new Error(Errors.LISTENERS_MAP_MISSED);
     }
 
@@ -123,6 +231,12 @@ class Listenable extends Disposable {
     } else {
       opts.capture = false;
     }
+    this.logger.trace(
+      LoggerTraceActions.LOG_STRINGLIFIED,
+      "Listenable",
+      "unlisten:opts",
+      opts,
+    );
 
     const listeners = maps.get(etype);
     if (listeners) {
@@ -133,20 +247,72 @@ class Listenable extends Disposable {
           listeners[i].capture === opts.capture
         ) {
           listeners[i].removed = true;
+          this.logger.debug(
+            LoggerDebugActions.INTERNAL_CHANGED,
+            "EventListener." + etype + "." + opts.capture
+              ? "capture"
+              : "bubble",
+            "update",
+            JSON.stringify({
+              removed: true,
+            }),
+          );
+
           listeners.splice(i, 1);
+          this.logger.debug(
+            LoggerDebugActions.INTERNAL_CHANGED,
+            "listenersMaps." + etype,
+            "splice",
+            "EventListener." + etype + "." + opts.capture
+              ? "capture"
+              : "bubble",
+          );
         }
       }
       if (listeners.length === 0) {
         maps.delete(etype);
+        this.logger.debug(
+          LoggerDebugActions.INTERNAL_CHANGED,
+          "listenersMaps",
+          "delete",
+          etype,
+        );
       }
     }
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "listen",
+      "exit",
+    );
   }
 
   /**
    * //
    */
   dispatch(etype: string, scope?: unknown): boolean {
-    return dispatchEvent(this, etype, scope);
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "dispatch",
+      "entry",
+    );
+
+    const result = dispatchEvent(this, etype, scope);
+    this.logger.trace(
+      LoggerTraceActions.LOG_STRINGLIFIED,
+      "Listenable",
+      "dispatch:result",
+      result,
+    );
+
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Listenable",
+      "dispatch",
+      "exit",
+    );
+    return result;
   }
 }
 export default Listenable;

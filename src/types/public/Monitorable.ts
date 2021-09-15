@@ -1,7 +1,10 @@
 import getUid from "../../helpers/getUid";
 import getStack from "../../helpers/getStack";
 import getInternalState from "../../helpers/getInternalState";
+import LoggerDebugActions from "../../enums/LoggerDebugActions";
+import LoggerInfoActions from "../../enums/LoggerInfoActions";
 import Logger from "./Logger";
+import LoggerTraceActions from "src/enums/LoggerTraceActions";
 
 /**
  * Class that provides the basic implementation for monitorable objects.
@@ -14,59 +17,105 @@ class Monitorable {
   /**
    * Unique UUID-like identifier.
    */
-  #uid: string;
+  #_uid: string;
 
   /**
    * Unique UUID-like identifier.
    */
   get uid(): string {
-    return this.#uid;
+    return this.#_uid;
   }
 
   /**
    * Instantiation timestamp.
    */
-  #created: number;
+  #_created: number;
 
   /**
    * Instantiation timestamp.
    */
   get created(): number {
-    return this.#created;
+    return this.#_created;
   }
 
   /**
    * Instance logger.
    */
-  #logger: Logger;
+  #_logger: Logger;
 
   /**
    * Instance logger.
    */
   get logger(): Logger {
-    return this.#logger;
+    return this.#_logger;
   }
 
   /**
    * Instantiation stack.
    */
-  #stack: string;
+  #_stack: string;
 
   /**
    * Instantiation stack.
    */
   get stack(): string {
-    return this.#stack;
+    return this.#_stack;
   }
 
   /**
    * Class constructor.
    */
   constructor() {
-    this.#uid = getUid();
-    this.#created = Date.now();
-    this.#stack = getStack("Instantiation stack");
-    this.#logger = new (getInternalState().Logger || Logger)(this.#uid);
+    this.#_uid = getUid();
+    this.#_logger = new (getInternalState().Logger || Logger)(this.#_uid);
+
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Monitorable",
+      "contructor",
+      "entry",
+    );
+    this.logger.debug(
+      LoggerDebugActions.INSTANCE_CHANGED,
+      "Monitorable",
+      "#_uid",
+      this.#_uid,
+    );
+    this.logger.debug(
+      LoggerDebugActions.INSTANCE_CHANGED,
+      "Monitorable",
+      "#_logger",
+      getInternalState().Logger ? "inbound" : "default",
+    );
+
+    this.#_created = Date.now();
+    this.logger.debug(
+      LoggerDebugActions.INSTANCE_CHANGED,
+      "Monitorable",
+      "#_created",
+      this.#_created,
+    );
+
+    this.#_stack = getStack("Instantiation stack");
+    this.logger.debug(
+      LoggerDebugActions.INSTANCE_CHANGED,
+      "Monitorable",
+      "#_stack",
+      this.#_stack,
+    );
+
+    this.logger.info(
+      LoggerInfoActions.INSTANCE_CONSTRUCTED,
+      "Monitorable",
+      this.#_uid,
+    );
+
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Monitorable",
+      "contructor",
+      "exit",
+    );
   }
 }
 

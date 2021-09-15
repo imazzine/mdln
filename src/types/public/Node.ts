@@ -2,12 +2,16 @@ import getInternalState from "../../helpers/getInternalState";
 import Listenable from "./Listenable";
 import NodeIndex from "../internal/NodeIndex";
 import Errors from "../../enums/Errors";
+import LoggerDebugActions from "../../enums/LoggerDebugActions";
+import LoggerInfoActions from "../../enums/LoggerInfoActions";
+import LoggerTraceActions from "../../enums/LoggerTraceActions";
 
 const internal = getInternalState();
 
 function _getIndexObject(node: Node): NodeIndex {
   const index = internal.nodesIndices.get(node);
   if (!index) {
+    node.logger.error(1, Errors.NODE_INDEX_MISSED);
     throw new Error(Errors.NODE_INDEX_MISSED);
   } else {
     return index;
@@ -19,6 +23,7 @@ function _assertChild(parent: Node, child: Node): void {
   const pIndex = _getIndexObject(parent);
   const i = pIndex.children.indexOf(child);
   if (!~i) {
+    parent.logger.error(1, Errors.NODE_MISSED_IN_CHILDREN);
     throw new Error(Errors.NODE_MISSED_IN_CHILDREN);
   }
 }
@@ -106,30 +111,99 @@ class Node extends Listenable {
    */
   constructor() {
     super();
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Node",
+      "constructor",
+      "entry",
+    );
+
     internal.nodesIndices.set(this, new NodeIndex());
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "NodeIndex." + this.uid,
+      "construct",
+      JSON.stringify({}),
+    );
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "nodesIndices",
+      "set",
+      "NodeIndex." + this.uid,
+    );
+
+    this.logger.info(LoggerInfoActions.INSTANCE_CONSTRUCTED, "Node", this.uid);
+
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Node",
+      "constructor",
+      "exit",
+    );
   }
 
   /**
    * @override
    * @internal
    */
-  $dispose(): void {
+  $_dispose(): void {
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Node",
+      "$_dispose",
+      "entry",
+    );
+
     const curIndex = _getIndexObject(this);
     for (let i = 0; i < curIndex.children.length; i++) {
+      this.logger.trace(
+        LoggerTraceActions.TRACE_CHECKPOINT,
+        "Node",
+        "$_dispose",
+        "disposing children",
+      );
       curIndex.children[i].dispose();
     }
+
     if (curIndex.parent) {
       const parIndex = _getIndexObject(curIndex.parent);
       parIndex.children.splice(parIndex.children.indexOf(this), 1);
+      this.logger.debug(
+        LoggerDebugActions.INTERNAL_CHANGED,
+        "NodeIndex." + curIndex.parent.uid + ".children",
+        "splice",
+        this.uid,
+      );
     }
+
     internal.nodesIndices.delete(this);
-    super.$dispose();
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "nodesIndices",
+      "delete",
+      this.uid,
+    );
+
+    super.$_dispose();
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Node",
+      "$_dispose",
+      "exit",
+    );
   }
 
   /**
    * //
    */
   insert(child: Node, before?: Node): Node {
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Node",
+      "insert",
+      "entry",
+    );
+
     before && _assertChild(this, before);
     const pIndex = _getIndexObject(this);
     const cIndex = _getIndexObject(child);
@@ -137,13 +211,45 @@ class Node extends Listenable {
     const i = children.indexOf(child);
     if (~i) {
       children.splice(i, 1);
+      this.logger.debug(
+        LoggerDebugActions.INTERNAL_CHANGED,
+        "NodeIndex." + this.uid + ".children",
+        "splice",
+        child.uid,
+      );
     }
     if (!before) {
       children.push(child);
     } else {
+      this.logger.trace(
+        LoggerTraceActions.TRACE_CHECKPOINT,
+        "Node",
+        "insert",
+        "before",
+      );
       children.splice(children.indexOf(before), 0, child);
     }
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "NodeIndex." + this.uid + ".children",
+      "push",
+      child.uid,
+    );
+
     cIndex.parent = this;
+    this.logger.debug(
+      LoggerDebugActions.INTERNAL_CHANGED,
+      "NodeIndex." + child.uid + ".parent",
+      "set",
+      this.uid,
+    );
+
+    this.logger.trace(
+      LoggerTraceActions.TRACE_CHECKPOINT,
+      "Node",
+      "insert",
+      "exit",
+    );
     return child;
   }
 
