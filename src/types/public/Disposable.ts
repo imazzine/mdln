@@ -1,10 +1,7 @@
 import getInternalState from "../../helpers/getInternalState";
 import Errors from "../../enums/Errors";
-import LoggerDebugActions from "../../enums/LoggerDebugActions";
-import LoggerInfoActions from "../../enums/LoggerInfoActions";
-import LoggerTraceActions from "../../enums/LoggerTraceActions";
 import Monitorable from "./Monitorable";
-
+import Logger from "./Logger";
 const internal = getInternalState();
 
 /**
@@ -48,47 +45,32 @@ class Disposable extends Monitorable {
   constructor() {
     super();
     this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Disposable",
-      "constructor",
-      "entry",
+      Logger.checkpoint("mdln/types/public/Disposable/constructor", "start"),
     );
 
     this.#_disposed = 0;
     this.logger.debug(
-      LoggerDebugActions.INSTANCE_CHANGED,
-      "Disposable",
-      "#_disposed",
-      this.#_disposed,
+      Logger.monitorable_changed("Disposable", "#_disposed", this.#_disposed),
     );
 
     this.#_disposing = false;
     this.logger.debug(
-      LoggerDebugActions.INSTANCE_CHANGED,
-      "Disposable",
-      "#_disposing",
-      this.#_disposing,
+      Logger.monitorable_changed("Disposable", "#_disposing", this.#_disposing),
     );
 
     internal.undisposed.set(this.uid, this);
     this.logger.debug(
-      LoggerDebugActions.INTERNAL_CHANGED,
-      "undisposed",
-      "set",
-      this.uid,
-    );
-
-    this.logger.info(
-      LoggerInfoActions.INSTANCE_CONSTRUCTED,
-      "Disposable",
-      this.uid,
+      Logger.variable_changed(
+        "internal.undisposed",
+        "Map",
+        "set",
+        [this.uid, `{${this.uid}}`],
+        true,
+      ),
     );
 
     this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Disposable",
-      "constructor",
-      "exit",
+      Logger.checkpoint("mdln/types/public/Disposable/constructor", "exit"),
     );
   }
 
@@ -117,54 +99,48 @@ class Disposable extends Monitorable {
    */
   protected $_dispose(): void {
     this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Disposable",
-      "$_dispose",
-      "entry",
+      Logger.checkpoint("mdln/types/public/Disposable/$_dispose", "start"),
     );
 
     if (this.disposing) {
       this.logger.trace(
-        LoggerTraceActions.TRACE_CHECKPOINT,
-        "Disposable",
-        "$_dispose",
-        "start",
+        Logger.checkpoint(
+          "mdln/types/public/Disposable/$_dispose",
+          "disposing",
+        ),
       );
 
       internal.undisposed.delete(this.uid);
       this.logger.debug(
-        LoggerDebugActions.INTERNAL_CHANGED,
-        "undisposed",
-        "delete",
-        this.uid,
+        Logger.variable_changed(
+          "internal.undisposed",
+          "Map",
+          "delete",
+          [this.uid],
+          true,
+        ),
       );
 
       this.#_disposing = false;
       this.logger.debug(
-        LoggerDebugActions.INSTANCE_CHANGED,
-        "Disposable",
-        "#_disposing",
-        this.#_disposing,
+        Logger.monitorable_changed(
+          "Disposable",
+          "#_disposing",
+          this.#_disposing,
+        ),
       );
 
       this.#_disposed = Date.now();
       this.logger.debug(
-        LoggerDebugActions.INSTANCE_CHANGED,
-        "Disposable",
-        "#_disposed",
-        this.#_disposed,
-      );
-
-      this.logger.trace(
-        LoggerTraceActions.TRACE_CHECKPOINT,
-        "Disposable",
-        "$_dispose",
-        "exit",
+        Logger.monitorable_changed("Disposable", "#_disposed", this.#_disposed),
       );
     } else {
-      this.logger.error(1, Errors.MANUAL_CALL);
+      this.logger.error(Logger.error(1, Errors.MANUAL_CALL));
       throw new Error(Errors.MANUAL_CALL);
     }
+    this.logger.trace(
+      Logger.checkpoint("mdln/types/public/Disposable/$_dispose", "end"),
+    );
   }
 
   /**
@@ -176,52 +152,46 @@ class Disposable extends Monitorable {
    */
   dispose(): void {
     this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Disposable",
-      "dispose",
-      "entry",
+      Logger.checkpoint("mdln/types/public/Disposable/dispose", "start"),
     );
 
     if (this.disposed === 0) {
       this.logger.trace(
-        LoggerTraceActions.TRACE_CHECKPOINT,
-        "Disposable",
-        "dispose",
-        "start",
+        Logger.checkpoint(
+          "mdln/types/public/Disposable/dispose",
+          "disposing sequence start",
+        ),
       );
 
       this.#_disposing = true;
       this.logger.debug(
-        LoggerDebugActions.INSTANCE_CHANGED,
-        "Disposable",
-        "#_disposing",
-        this.#_disposing,
+        Logger.monitorable_changed(
+          "Disposable",
+          "#_disposing",
+          this.#_disposing,
+        ),
       );
 
       this.$_dispose();
+
+      this.logger.trace(
+        Logger.checkpoint(
+          "mdln/types/public/Disposable/dispose",
+          "disposing sequence end",
+        ),
+      );
+
       if (this.disposed === 0 || this.disposing) {
-        this.logger.error(1, Errors.BROKEN_CHAIN);
+        this.logger.error(Logger.error(1, Errors.BROKEN_CHAIN));
         throw new Error(Errors.BROKEN_CHAIN);
       }
 
-      this.logger.info(
-        LoggerInfoActions.INSTANCE_DISPOSED,
-        "Disposable",
-        this.uid,
-      );
-      this.logger.trace(
-        LoggerTraceActions.TRACE_CHECKPOINT,
-        "Disposable",
-        "dispose",
-        "exit",
-      );
+      this.logger.info(Logger.disposable_disposed());
+    } else {
+      this.logger.warn(`{${this.uid}} is alredy disposed`);
     }
-    this.logger.warn("already disposed");
     this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Disposable",
-      "dispose",
-      "exit",
+      Logger.checkpoint("mdln/types/public/Disposable/dispose", "end"),
     );
   }
 }

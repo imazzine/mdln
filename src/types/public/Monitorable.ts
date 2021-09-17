@@ -1,10 +1,7 @@
 import getUid from "../../helpers/getUid";
 import getStack from "../../helpers/getStack";
 import getInternalState from "../../helpers/getInternalState";
-import LoggerDebugActions from "../../enums/LoggerDebugActions";
-import LoggerInfoActions from "../../enums/LoggerInfoActions";
 import Logger from "./Logger";
-import LoggerTraceActions from "src/enums/LoggerTraceActions";
 
 /**
  * Class that provides the basic implementation for monitorable objects.
@@ -68,53 +65,35 @@ class Monitorable {
   constructor() {
     this.#_uid = getUid();
     this.#_logger = new (getInternalState().Logger || Logger)(this.#_uid);
+    this.#_logger.trace(
+      Logger.checkpoint("mdln/types/public/Monitorable/constructor", "start"),
+    );
 
-    this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Monitorable",
-      "contructor",
-      "entry",
+    this.logger.debug(
+      Logger.monitorable_changed("Monitorable", "#_uid", this.#_uid),
     );
     this.logger.debug(
-      LoggerDebugActions.INSTANCE_CHANGED,
-      "Monitorable",
-      "#_uid",
-      this.#_uid,
-    );
-    this.logger.debug(
-      LoggerDebugActions.INSTANCE_CHANGED,
-      "Monitorable",
-      "#_logger",
-      getInternalState().Logger ? "inbound" : "default",
+      Logger.monitorable_changed(
+        "Monitorable",
+        "#_logger",
+        getInternalState().Logger ? "inbound" : "default",
+      ),
     );
 
     this.#_created = Date.now();
     this.logger.debug(
-      LoggerDebugActions.INSTANCE_CHANGED,
-      "Monitorable",
-      "#_created",
-      this.#_created,
+      Logger.monitorable_changed("Monitorable", "#_created", this.#_created),
     );
 
     this.#_stack = getStack("Instantiation stack");
     this.logger.debug(
-      LoggerDebugActions.INSTANCE_CHANGED,
-      "Monitorable",
-      "#_stack",
-      this.#_stack,
+      Logger.monitorable_changed("Monitorable", "#_stack", this.#_stack),
     );
 
-    this.logger.info(
-      LoggerInfoActions.INSTANCE_CONSTRUCTED,
-      "Monitorable",
-      this.#_uid,
-    );
+    this.logger.info(Logger.monitorable_constructed());
 
-    this.logger.trace(
-      LoggerTraceActions.TRACE_CHECKPOINT,
-      "Monitorable",
-      "contructor",
-      "exit",
+    this.#_logger.trace(
+      Logger.checkpoint("mdln/types/public/Monitorable/constructor", "end"),
     );
   }
 }

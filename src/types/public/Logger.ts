@@ -1,56 +1,176 @@
 import LogLevel from "../../enums/LogLevel";
-import LoggerDebugActions from "../../enums/LoggerDebugActions";
-import LoggerInfoActions from "../../enums/LoggerInfoActions";
-import LoggerTraceActions from "../../enums/LoggerTraceActions";
 import getInternalState from "../../helpers/getInternalState";
-import { stringify } from "uuid";
 
 const internal = getInternalState();
 
-interface TraceMessage {
-  level: LogLevel.TRACE;
-  uid: string;
-  action: LoggerTraceActions;
-  type: string;
-  name: string;
-  value: unknown;
+enum ContentType {
+  undefined = "undefined",
+  symbol = "symbol",
+  boolean = "boolean",
+  number = "number",
+  bigint = "bigint",
+  string = "string",
+  function = "function",
+  object = "object",
+  checkpoint = "checkpoint",
+  monitorable_constructed = "monitorable_constructed",
+  monitorable_changed = "monitorable_changed",
+  disposable_disposed = "disposable_disposed",
+  node_inserted = "node_inserted",
+  node_replaced = "node_replaced",
+  node_removed = "node_removed",
+  variable_changed = "variable_changed",
+  error = "error",
 }
 
-interface DebugMessage {
-  level: LogLevel.DEBUG;
-  uid: string;
-  action: LoggerDebugActions;
-  type: string;
-  name: string;
+function parseMessage(
+  message: undefined | symbol | boolean | bigint | number | string | unknown,
+): { [type: string]: boolean | number | string } {
+  switch (typeof message) {
+    case "undefined":
+      return { [ContentType.undefined]: ContentType.undefined };
+    case "symbol":
+      return { [ContentType.symbol]: ContentType.symbol };
+    case "bigint":
+      return { [ContentType.bigint]: message.toString() };
+    case "boolean":
+      return { [ContentType.boolean]: message };
+    case "number":
+      return { [ContentType.number]: message };
+    case "string":
+      return { [ContentType.string]: message };
+    case "function":
+      return { [ContentType.function]: message.toString() };
+    case "object":
+      try {
+        return { [ContentType.object]: JSON.stringify(message) };
+      } catch (err) {
+        return message
+          ? { [ContentType.object]: message.toString() }
+          : { [ContentType.object]: "null" };
+      }
+  }
+}
+
+class Checkpoint {
+  label: string;
+  point: string;
+  constructor(label: string, point: string) {
+    this.label = label;
+    this.point = point;
+  }
+}
+
+class MonitorableConstructed {}
+
+class MonitorableChanged {
+  level: string;
+  field: string;
   value: boolean | number | string;
+  constructor(level: string, field: string, value: boolean | number | string) {
+    this.level = level;
+    this.field = field;
+    this.value = value;
+  }
 }
 
-interface InfoMessage {
-  level: LogLevel.INFO;
-  uid: string;
-  action: LoggerInfoActions;
+class DisposableDisposed {}
+
+class NodeInserted {
+  child: string;
+  before?: string;
+  constructor(child: string, before?: string) {
+    this.child = child;
+    this.before = before;
+  }
+}
+
+class NodeReplaced {
+  existing: string;
+  to: string;
+  constructor(existing: string, to: string) {
+    this.existing = existing;
+    this.to = to;
+  }
+}
+
+class NodeRemoved {
+  child: string;
+  constructor(child: string) {
+    this.child = child;
+  }
+}
+
+class VariableChanged {
   name: string;
-  value: boolean | number | string;
+  type: string;
+  method: string;
+  args: Array<boolean | number | string>;
+  global: boolean;
+  constructor(
+    name: string,
+    type: string,
+    method: string,
+    args: Array<boolean | number | string>,
+    global = false,
+  ) {
+    this.name = name;
+    this.type = type;
+    this.method = method;
+    this.args = args;
+    this.global = global;
+  }
 }
 
-interface WarnMessage {
-  level: LogLevel.WARN;
-  uid: string;
-  message: string;
-}
-
-interface ErrorMessage {
-  level: LogLevel.ERROR;
-  uid: string;
+class ErrorLog {
   code: number;
   message: string;
+  constructor(code: number, message: string) {
+    this.code = code;
+    this.message = message;
+  }
 }
 
-interface FatalMessage {
-  level: LogLevel.FATAL;
+class Message {
   uid: string;
-  code: number;
-  message: string;
+  type: ContentType;
+  level: LogLevel;
+  message:
+    | boolean
+    | number
+    | string
+    | Checkpoint
+    | MonitorableConstructed
+    | MonitorableChanged
+    | DisposableDisposed
+    | NodeInserted
+    | NodeReplaced
+    | NodeRemoved
+    | VariableChanged
+    | ErrorLog;
+  constructor(
+    uid: string,
+    type: ContentType,
+    level: LogLevel,
+    message:
+      | boolean
+      | number
+      | string
+      | Checkpoint
+      | MonitorableConstructed
+      | MonitorableChanged
+      | DisposableDisposed
+      | NodeInserted
+      | NodeReplaced
+      | NodeRemoved
+      | VariableChanged
+      | ErrorLog,
+  ) {
+    this.uid = uid;
+    this.type = type;
+    this.level = level;
+    this.message = message;
+  }
 }
 
 /**
@@ -64,6 +184,64 @@ interface FatalMessage {
  * {@link setLogger} function.
  */
 class Logger {
+  public static checkpoint = function (
+    flow: string,
+    point: string,
+  ): Checkpoint {
+    return new Checkpoint(flow, point);
+  };
+
+  public static monitorable_constructed(): MonitorableConstructed {
+    return new MonitorableConstructed();
+  }
+
+  public static monitorable_changed(
+    level: string,
+    field: string,
+    value: any,
+  ): MonitorableChanged {
+    const msg = parseMessage(value);
+    const key = Object.keys(msg)[0] as ContentType;
+    const val = msg[key];
+    return new MonitorableChanged(level, field, val);
+  }
+
+  public static disposable_disposed(): DisposableDisposed {
+    return new DisposableDisposed();
+  }
+
+  public static node_inserted(child: string, before?: string): NodeInserted {
+    return new NodeInserted(child, before);
+  }
+
+  public static node_replaced(existing: string, to: string): NodeReplaced {
+    return new NodeReplaced(existing, to);
+  }
+
+  public static node_removed(child: string): NodeRemoved {
+    return new NodeRemoved(child);
+  }
+
+  public static variable_changed(
+    name: string,
+    type: string,
+    method: string,
+    args: Array<any>,
+    global = false,
+  ): VariableChanged {
+    const res: Array<boolean | number | string> = [];
+    args.forEach((value) => {
+      const msg = parseMessage(value);
+      const val = msg[Object.keys(msg)[0]];
+      res.push(val);
+    });
+    return new VariableChanged(name, type, method, res, global);
+  }
+
+  public static error(code: number, message: string): ErrorLog {
+    return new ErrorLog(code, message);
+  }
+
   #uid: string;
 
   /**
@@ -114,15 +292,7 @@ class Logger {
    *
    * @param msg Message to log.
    */
-  protected $_log(
-    msg:
-      | TraceMessage
-      | DebugMessage
-      | InfoMessage
-      | WarnMessage
-      | ErrorMessage
-      | FatalMessage,
-  ): boolean {
+  protected $_log(msg: Message): boolean {
     if (this.level === LogLevel.NONE) {
       return false;
     } else {
@@ -169,122 +339,168 @@ class Logger {
    * Outputs a message at the "trace" log level. Returns
    * true if message was outputted, false otherwise.
    *
-   * @param action Traceable action.
-   * @param type Traceable type.
-   * @param name Traceable key name.
-   * @param value Traceable key value.
+   * @param message Message to trace.
    */
-  public trace(
-    action: LoggerTraceActions,
-    type: string,
-    name: string,
-    value: unknown,
-  ): boolean {
-    if (action === LoggerTraceActions.LOG_STRINGLIFIED) {
-      value = JSON.stringify(value);
+  public trace(message: any): boolean {
+    if (message instanceof Checkpoint) {
+      return this.$_log(
+        new Message(this.uid, ContentType.checkpoint, LogLevel.TRACE, message),
+      );
+    } else {
+      const msg = parseMessage(message);
+      const key = Object.keys(msg)[0] as ContentType;
+      const val = msg[key];
+      return this.$_log(new Message(this.uid, key, LogLevel.TRACE, val));
     }
-    return this.$_log({
-      level: LogLevel.TRACE,
-      action: action,
-      uid: this.uid,
-      type: type,
-      name: name,
-      value: value,
-    });
   }
 
   /**
    * Outputs a message at the "debug" log level. Returns
    * true if message was outputted, false otherwise.
    *
-   * @param action Debuggable action.
-   * @param type Debuggable type.
-   * @param name Debuggable key name.
-   * @param value Debuggable key value.
+   * @param message Message to debug.
    */
-  public debug(
-    action: LoggerDebugActions,
-    type: string,
-    name: string,
-    value: boolean | number | string,
-  ): boolean {
-    return this.$_log({
-      level: LogLevel.DEBUG,
-      action: action,
-      uid: this.uid,
-      type: type,
-      name: name,
-      value: value,
-    });
+  public debug(message: any): boolean {
+    if (message instanceof MonitorableChanged) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.monitorable_changed,
+          LogLevel.DEBUG,
+          message,
+        ),
+      );
+    }
+    if (message instanceof VariableChanged) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.variable_changed,
+          LogLevel.DEBUG,
+          message,
+        ),
+      );
+    } else {
+      const msg = parseMessage(message);
+      const key = Object.keys(msg)[0] as ContentType;
+      const val = msg[Object.keys(msg)[0]];
+      return this.$_log(new Message(this.uid, key, LogLevel.DEBUG, val));
+    }
   }
 
   /**
    * Outputs a message at the "info" log level. Returns
    * true if message was outputted, false otherwise.
    *
-   * @param action Logable action.
-   * @param name Logable key name.
-   * @param value Logable key value.
+   * @param message Message to info.
    */
-  public info(
-    action: LoggerInfoActions,
-    name: string,
-    value: boolean | number | string,
-  ): boolean {
-    return this.$_log({
-      level: LogLevel.INFO,
-      action: action,
-      uid: this.uid,
-      name: name,
-      value: value,
-    });
+  public info(message: any): boolean {
+    if (message instanceof MonitorableConstructed) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.monitorable_constructed,
+          LogLevel.INFO,
+          message,
+        ),
+      );
+    }
+    if (message instanceof DisposableDisposed) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.disposable_disposed,
+          LogLevel.INFO,
+          message,
+        ),
+      );
+    }
+    if (message instanceof NodeInserted) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.disposable_disposed,
+          LogLevel.INFO,
+          message,
+        ),
+      );
+    }
+    if (message instanceof NodeReplaced) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.disposable_disposed,
+          LogLevel.INFO,
+          message,
+        ),
+      );
+    }
+    if (message instanceof NodeRemoved) {
+      return this.$_log(
+        new Message(
+          this.uid,
+          ContentType.disposable_disposed,
+          LogLevel.INFO,
+          message,
+        ),
+      );
+    } else {
+      const msg = parseMessage(message);
+      const key = Object.keys(msg)[0] as ContentType;
+      const val = msg[Object.keys(msg)[0]];
+      return this.$_log(new Message(this.uid, key, LogLevel.INFO, val));
+    }
   }
 
   /**
    * Outputs a message at the "warn" log level. Returns
    * true if message was outputted, false otherwise.
    *
-   * @param msg Message to output.
+   * @param message Message to output.
    */
-  public warn(msg: string): boolean {
-    return this.$_log({
-      level: LogLevel.WARN,
-      uid: this.uid,
-      message: msg,
-    });
+  public warn(message: any): boolean {
+    const msg = parseMessage(message);
+    const key = Object.keys(msg)[0] as ContentType;
+    const val = msg[Object.keys(msg)[0]];
+    return this.$_log(new Message(this.uid, key, LogLevel.WARN, val));
   }
 
   /**
    * Outputs a message at the "error" log level. Returns
    * true if message was outputted, false otherwise.
    *
-   * @param code Error code.
-   * @param msg Message to output.
+   * @param message Error message.
    */
-  public error(code: number, msg: string): boolean {
-    return this.$_log({
-      level: LogLevel.ERROR,
-      uid: this.uid,
-      code: code,
-      message: msg,
-    });
+  public error(message: any): boolean {
+    if (message instanceof ErrorLog) {
+      return this.$_log(
+        new Message(this.uid, ContentType.error, LogLevel.ERROR, message),
+      );
+    } else {
+      const msg = parseMessage(message);
+      const key = Object.keys(msg)[0] as ContentType;
+      const val = msg[Object.keys(msg)[0]];
+      return this.$_log(new Message(this.uid, key, LogLevel.ERROR, val));
+    }
   }
 
   /**
    * Outputs a message at the "fatal" log level. Returns
    * true if message was outputted, false otherwise.
    *
-   * @param code Error code.
-   * @param msg Message to output.
+   * @param message Error message.
    */
-  public fatal(code: number, msg: string): boolean {
-    return this.$_log({
-      level: LogLevel.FATAL,
-      uid: this.uid,
-      code: code,
-      message: msg,
-    });
+  public fatal(message: any): boolean {
+    if (message instanceof ErrorLog) {
+      return this.$_log(
+        new Message(this.uid, ContentType.error, LogLevel.FATAL, message),
+      );
+    } else {
+      const msg = parseMessage(message);
+      const key = Object.keys(msg)[0] as ContentType;
+      const val = msg[Object.keys(msg)[0]];
+      return this.$_log(new Message(this.uid, key, LogLevel.FATAL, val));
+    }
   }
 }
-
 export default Logger;
