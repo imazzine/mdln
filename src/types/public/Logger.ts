@@ -1,56 +1,8 @@
+import getUid from "../../helpers/getUid";
 import LogLevel from "../../enums/LogLevel";
 import getInternalState from "../../helpers/getInternalState";
 
 const internal = getInternalState();
-
-enum ContentType {
-  undefined = "undefined",
-  symbol = "symbol",
-  boolean = "boolean",
-  number = "number",
-  bigint = "bigint",
-  string = "string",
-  function = "function",
-  object = "object",
-  checkpoint = "checkpoint",
-  monitorable_constructed = "monitorable_constructed",
-  monitorable_changed = "monitorable_changed",
-  disposable_disposed = "disposable_disposed",
-  node_inserted = "node_inserted",
-  node_replaced = "node_replaced",
-  node_removed = "node_removed",
-  variable_changed = "variable_changed",
-  error = "error",
-}
-
-function parseMessage(
-  message: undefined | symbol | boolean | bigint | number | string | unknown,
-): { [type: string]: boolean | number | string } {
-  switch (typeof message) {
-    case "undefined":
-      return { [ContentType.undefined]: ContentType.undefined };
-    case "symbol":
-      return { [ContentType.symbol]: ContentType.symbol };
-    case "bigint":
-      return { [ContentType.bigint]: message.toString() };
-    case "boolean":
-      return { [ContentType.boolean]: message };
-    case "number":
-      return { [ContentType.number]: message };
-    case "string":
-      return { [ContentType.string]: message };
-    case "function":
-      return { [ContentType.function]: message.toString() };
-    case "object":
-      try {
-        return { [ContentType.object]: JSON.stringify(message) };
-      } catch (err) {
-        return message
-          ? { [ContentType.object]: message.toString() }
-          : { [ContentType.object]: "null" };
-      }
-  }
-}
 
 class Checkpoint {
   label: string;
@@ -61,7 +13,9 @@ class Checkpoint {
   }
 }
 
-class MonitorableConstructed {}
+class MonitorableConstructed {
+  //
+}
 
 class MonitorableChanged {
   level: string;
@@ -74,7 +28,9 @@ class MonitorableChanged {
   }
 }
 
-class DisposableDisposed {}
+class DisposableDisposed {
+  //
+}
 
 class NodeInserted {
   child: string;
@@ -131,11 +87,32 @@ class ErrorLog {
   }
 }
 
+enum MessageType {
+  undefined = "undefined",
+  symbol = "symbol",
+  boolean = "boolean",
+  number = "number",
+  bigint = "bigint",
+  string = "string",
+  function = "function",
+  object = "object",
+  checkpoint = "checkpoint",
+  monitorable_constructed = "monitorable_constructed",
+  monitorable_changed = "monitorable_changed",
+  disposable_disposed = "disposable_disposed",
+  node_inserted = "node_inserted",
+  node_replaced = "node_replaced",
+  node_removed = "node_removed",
+  variable_changed = "variable_changed",
+  error = "error",
+}
+
 class Message {
-  uid: string;
-  type: ContentType;
-  level: LogLevel;
-  message:
+  #_thread: null | string;
+  #_logger: string;
+  #_level: LogLevel;
+  #_type: MessageType;
+  #_message:
     | boolean
     | number
     | string
@@ -148,9 +125,42 @@ class Message {
     | NodeRemoved
     | VariableChanged
     | ErrorLog;
+
+  get thread(): null | string {
+    return this.#_thread;
+  }
+
+  get logger(): string {
+    return this.#_logger;
+  }
+
+  get level(): LogLevel {
+    return this.#_level;
+  }
+
+  get type(): MessageType {
+    return this.#_type;
+  }
+
+  get message():
+    | boolean
+    | number
+    | string
+    | Checkpoint
+    | MonitorableConstructed
+    | MonitorableChanged
+    | DisposableDisposed
+    | NodeInserted
+    | NodeReplaced
+    | NodeRemoved
+    | VariableChanged
+    | ErrorLog {
+    return this.#_message;
+  }
+
   constructor(
-    uid: string,
-    type: ContentType,
+    logger: string,
+    type: MessageType,
     level: LogLevel,
     message:
       | boolean
@@ -166,10 +176,40 @@ class Message {
       | VariableChanged
       | ErrorLog,
   ) {
-    this.uid = uid;
-    this.type = type;
-    this.level = level;
-    this.message = message;
+    this.#_thread = internal.thread;
+    this.#_logger = logger;
+    this.#_type = type;
+    this.#_level = level;
+    this.#_message = message;
+  }
+}
+
+function parseMessage(
+  message: undefined | symbol | boolean | bigint | number | string | unknown,
+): { [type: string]: boolean | number | string } {
+  switch (typeof message) {
+    case "undefined":
+      return { [MessageType.undefined]: MessageType.undefined };
+    case "symbol":
+      return { [MessageType.symbol]: MessageType.symbol };
+    case "bigint":
+      return { [MessageType.bigint]: message.toString() };
+    case "boolean":
+      return { [MessageType.boolean]: message };
+    case "number":
+      return { [MessageType.number]: message };
+    case "string":
+      return { [MessageType.string]: message };
+    case "function":
+      return { [MessageType.function]: message.toString() };
+    case "object":
+      try {
+        return { [MessageType.object]: JSON.stringify(message) };
+      } catch (err) {
+        return message
+          ? { [MessageType.object]: message.toString() }
+          : { [MessageType.object]: "null" };
+      }
   }
 }
 
@@ -184,6 +224,18 @@ class Message {
  * {@link setLogger} function.
  */
 class Logger {
+  public static get thread(): null | string {
+    return internal.thread;
+  }
+
+  public static start_thread(): void {
+    internal.thread = getUid();
+  }
+
+  public static stop_thread(): void {
+    internal.thread = null;
+  }
+
   public static checkpoint = function (
     flow: string,
     point: string,
@@ -201,7 +253,7 @@ class Logger {
     value: any,
   ): MonitorableChanged {
     const msg = parseMessage(value);
-    const key = Object.keys(msg)[0] as ContentType;
+    const key = Object.keys(msg)[0] as MessageType;
     const val = msg[key];
     return new MonitorableChanged(level, field, val);
   }
@@ -299,19 +351,19 @@ class Logger {
       switch (msg.level) {
         case LogLevel.TRACE:
           if (this.level == LogLevel.TRACE) {
-            console.trace(msg);
+            console.log(msg);
             return true;
           }
           break;
         case LogLevel.DEBUG:
           if (this.level <= LogLevel.DEBUG) {
-            console.debug(msg);
+            console.log(msg);
             return true;
           }
           break;
         case LogLevel.INFO:
           if (this.level <= LogLevel.INFO) {
-            console.info(msg);
+            console.log(msg);
             return true;
           }
           break;
@@ -344,11 +396,11 @@ class Logger {
   public trace(message: any): boolean {
     if (message instanceof Checkpoint) {
       return this.$_log(
-        new Message(this.uid, ContentType.checkpoint, LogLevel.TRACE, message),
+        new Message(this.uid, MessageType.checkpoint, LogLevel.TRACE, message),
       );
     } else {
       const msg = parseMessage(message);
-      const key = Object.keys(msg)[0] as ContentType;
+      const key = Object.keys(msg)[0] as MessageType;
       const val = msg[key];
       return this.$_log(new Message(this.uid, key, LogLevel.TRACE, val));
     }
@@ -365,7 +417,7 @@ class Logger {
       return this.$_log(
         new Message(
           this.uid,
-          ContentType.monitorable_changed,
+          MessageType.monitorable_changed,
           LogLevel.DEBUG,
           message,
         ),
@@ -375,14 +427,14 @@ class Logger {
       return this.$_log(
         new Message(
           this.uid,
-          ContentType.variable_changed,
+          MessageType.variable_changed,
           LogLevel.DEBUG,
           message,
         ),
       );
     } else {
       const msg = parseMessage(message);
-      const key = Object.keys(msg)[0] as ContentType;
+      const key = Object.keys(msg)[0] as MessageType;
       const val = msg[Object.keys(msg)[0]];
       return this.$_log(new Message(this.uid, key, LogLevel.DEBUG, val));
     }
@@ -399,7 +451,7 @@ class Logger {
       return this.$_log(
         new Message(
           this.uid,
-          ContentType.monitorable_constructed,
+          MessageType.monitorable_constructed,
           LogLevel.INFO,
           message,
         ),
@@ -409,7 +461,7 @@ class Logger {
       return this.$_log(
         new Message(
           this.uid,
-          ContentType.disposable_disposed,
+          MessageType.disposable_disposed,
           LogLevel.INFO,
           message,
         ),
@@ -419,7 +471,7 @@ class Logger {
       return this.$_log(
         new Message(
           this.uid,
-          ContentType.disposable_disposed,
+          MessageType.node_inserted,
           LogLevel.INFO,
           message,
         ),
@@ -429,7 +481,7 @@ class Logger {
       return this.$_log(
         new Message(
           this.uid,
-          ContentType.disposable_disposed,
+          MessageType.node_replaced,
           LogLevel.INFO,
           message,
         ),
@@ -437,16 +489,11 @@ class Logger {
     }
     if (message instanceof NodeRemoved) {
       return this.$_log(
-        new Message(
-          this.uid,
-          ContentType.disposable_disposed,
-          LogLevel.INFO,
-          message,
-        ),
+        new Message(this.uid, MessageType.node_removed, LogLevel.INFO, message),
       );
     } else {
       const msg = parseMessage(message);
-      const key = Object.keys(msg)[0] as ContentType;
+      const key = Object.keys(msg)[0] as MessageType;
       const val = msg[Object.keys(msg)[0]];
       return this.$_log(new Message(this.uid, key, LogLevel.INFO, val));
     }
@@ -460,7 +507,7 @@ class Logger {
    */
   public warn(message: any): boolean {
     const msg = parseMessage(message);
-    const key = Object.keys(msg)[0] as ContentType;
+    const key = Object.keys(msg)[0] as MessageType;
     const val = msg[Object.keys(msg)[0]];
     return this.$_log(new Message(this.uid, key, LogLevel.WARN, val));
   }
@@ -474,11 +521,11 @@ class Logger {
   public error(message: any): boolean {
     if (message instanceof ErrorLog) {
       return this.$_log(
-        new Message(this.uid, ContentType.error, LogLevel.ERROR, message),
+        new Message(this.uid, MessageType.error, LogLevel.ERROR, message),
       );
     } else {
       const msg = parseMessage(message);
-      const key = Object.keys(msg)[0] as ContentType;
+      const key = Object.keys(msg)[0] as MessageType;
       const val = msg[Object.keys(msg)[0]];
       return this.$_log(new Message(this.uid, key, LogLevel.ERROR, val));
     }
@@ -493,11 +540,11 @@ class Logger {
   public fatal(message: any): boolean {
     if (message instanceof ErrorLog) {
       return this.$_log(
-        new Message(this.uid, ContentType.error, LogLevel.FATAL, message),
+        new Message(this.uid, MessageType.error, LogLevel.FATAL, message),
       );
     } else {
       const msg = parseMessage(message);
-      const key = Object.keys(msg)[0] as ContentType;
+      const key = Object.keys(msg)[0] as MessageType;
       const val = msg[Object.keys(msg)[0]];
       return this.$_log(new Message(this.uid, key, LogLevel.FATAL, val));
     }

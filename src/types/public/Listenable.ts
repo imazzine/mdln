@@ -1,9 +1,11 @@
-import { v5 } from "uuid";
+import getUid from "../../helpers/getUid";
 import getInternalState from "../../helpers/getInternalState";
 import dispatchEvent from "../../helpers/dispatchEvent";
-import Errors from "../../enums/Errors";
+import ErrorsCode from "../../enums/ErrorsCode";
+import ErrorsDescription from "../../enums/ErrorsDescription";
 import EventListener from "../internal/EventListener";
-import Disposable from "./Disposable";
+import { construct } from "./Monitorable";
+import { destruct, Destructible } from "./Destructible";
 import Event from "./Event";
 import Logger from "./Logger";
 
@@ -16,17 +18,16 @@ const internal = getInternalState();
  * responds for basic communication logic. Also, you may subclass this class
  * to turn your class into a monitorable, disposable and listenable node.
  */
-class Listenable extends Disposable {
-  /**
-   * Class constructor.
-   */
-  constructor() {
-    super();
+class Listenable extends Destructible {
+  protected [construct](): void {
+    super[construct]();
+
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Listenable/constructor", "start"),
     );
 
     internal.listenersMaps.set(this, new Map());
+
     this.logger.debug(
       Logger.variable_changed(
         `listenersMap[${this.uid}]`,
@@ -53,12 +54,13 @@ class Listenable extends Disposable {
   /**
    * @override
    */
-  protected $_dispose(): void {
+  protected [destruct](): void {
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Listenable/$_dispose", "start"),
     );
 
     internal.listenersMaps.delete(this);
+
     this.logger.debug(
       Logger.variable_changed(
         `internal.listenersMaps`,
@@ -68,18 +70,17 @@ class Listenable extends Disposable {
         true,
       ),
     );
-
-    super.$_dispose();
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Listenable/$_dispose", "end"),
     );
+    super[destruct]();
   }
 
   /**
    * //
    */
   listen(
-    etype: string,
+    eventType: string,
     callback: (event: Event) => void,
     options?: {
       capture?: boolean;
@@ -93,8 +94,13 @@ class Listenable extends Disposable {
 
     const maps = internal.listenersMaps.get(this);
     if (typeof maps === "undefined") {
-      this.logger.error(Logger.error(1, Errors.LISTENERS_MAP_MISSED));
-      throw new Error(Errors.LISTENERS_MAP_MISSED);
+      this.logger.error(
+        Logger.error(
+          ErrorsCode.LISTENERS_MAP_MISSED,
+          ErrorsDescription.LISTENERS_MAP_MISSED,
+        ),
+      );
+      throw new Error(ErrorsDescription.LISTENERS_MAP_MISSED);
     }
 
     const opts = {
@@ -123,7 +129,7 @@ class Listenable extends Disposable {
         this.logger.trace(
           Logger.checkpoint(
             "mdln/types/public/Listenable/listen",
-            `options.capture is set to ${options.capture}`,
+            `options.capture is set to ${options.capture.toString()}`,
           ),
         );
 
@@ -141,7 +147,7 @@ class Listenable extends Disposable {
         this.logger.trace(
           Logger.checkpoint(
             "mdln/types/public/Listenable/listen",
-            `options.passive is set to ${options.passive}`,
+            `options.passive is set to ${options.passive.toString()}`,
           ),
         );
         opts.passive = options.passive;
@@ -158,7 +164,7 @@ class Listenable extends Disposable {
         this.logger.trace(
           Logger.checkpoint(
             "mdln/types/public/Listenable/listen",
-            `options.once is set to ${options.once}`,
+            `options.once is set to ${options.once.toString()}`,
           ),
         );
         opts.once = options.once;
@@ -166,37 +172,37 @@ class Listenable extends Disposable {
     }
 
     let listener = null;
-    let listeners = maps.get(etype);
+    let listeners = maps.get(eventType);
     if (!listeners) {
       this.logger.trace(
         Logger.checkpoint(
           "mdln/types/public/Listenable/listen",
-          `listeners[${this.uid}, ${etype}] in not exist`,
+          `listeners[${this.uid}, ${eventType}] in not exist`,
         ),
       );
 
       listeners = [];
       this.logger.debug(
         Logger.variable_changed(
-          `listeners[${this.uid}, ${etype}]`,
+          `listeners[${this.uid}, ${eventType}]`,
           "Array",
           "constructor",
           [],
         ),
       );
 
-      maps.set(etype, listeners);
+      maps.set(eventType, listeners);
       this.logger.debug(
         Logger.variable_changed(`listenersMap[${this.uid}]`, "Map", "set", [
-          etype,
-          `{listeners[${this.uid}, ${etype}]}`,
+          eventType,
+          `{listeners[${this.uid}, ${eventType}]}`,
         ]),
       );
     } else {
       this.logger.trace(
         Logger.checkpoint(
           "mdln/types/public/Listenable/listen",
-          `listeners[${this.uid}, ${etype}] is exist`,
+          `listeners[${this.uid}, ${eventType}] is exist`,
         ),
       );
     }
@@ -210,20 +216,18 @@ class Listenable extends Disposable {
         this.logger.trace(
           Logger.checkpoint(
             "mdln/types/public/Listenable/listen",
-            `listener[${this.uid}, ${etype}, ${v5(
-              callback.toString(),
-              "00000000-0000-0000-0000-000000000000",
-            )}, ${opts.capture ? "capture" : "bubble"}] is exist`,
+            `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+              opts.capture ? "capture" : "bubble"
+            }] is exist`,
           ),
         );
 
         listener.passive = opts.passive;
         this.logger.debug(
           Logger.variable_changed(
-            `listener[${this.uid}, ${etype}, ${v5(
-              callback.toString(),
-              "00000000-0000-0000-0000-000000000000",
-            )}, ${opts.capture ? "capture" : "bubble"}]`,
+            `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+              opts.capture ? "capture" : "bubble"
+            }]`,
             "EventListener",
             "passive",
             [listener.passive],
@@ -233,10 +237,9 @@ class Listenable extends Disposable {
         listener.once = opts.once;
         this.logger.debug(
           Logger.variable_changed(
-            `listener[${this.uid}, ${etype}, ${v5(
-              callback.toString(),
-              "00000000-0000-0000-0000-000000000000",
-            )}, ${opts.capture ? "capture" : "bubble"}]`,
+            `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+              opts.capture ? "capture" : "bubble"
+            }]`,
             "EventListener",
             "once",
             [listener.once],
@@ -248,10 +251,9 @@ class Listenable extends Disposable {
       this.logger.trace(
         Logger.checkpoint(
           "mdln/types/public/Listenable/listen",
-          `listener[${this.uid}, ${etype}, ${v5(
-            callback.toString(),
-            "00000000-0000-0000-0000-000000000000",
-          )}, ${opts.capture ? "capture" : "bubble"}] is not exist`,
+          `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+            opts.capture ? "capture" : "bubble"
+          }] is not exist`,
         ),
       );
 
@@ -264,10 +266,9 @@ class Listenable extends Disposable {
       );
       this.logger.debug(
         Logger.variable_changed(
-          `listener[${this.uid}, ${etype}, ${v5(
-            callback.toString(),
-            "00000000-0000-0000-0000-000000000000",
-          )}, ${opts.capture ? "capture" : "bubble"}]`,
+          `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+            opts.capture ? "capture" : "bubble"
+          }]`,
           "EventListener",
           "constructor",
           [callback.toString(), opts.capture, opts.passive, false, opts.once],
@@ -277,14 +278,13 @@ class Listenable extends Disposable {
       listeners.push(listener);
       this.logger.debug(
         Logger.variable_changed(
-          `listeners[${this.uid}, ${etype}]`,
+          `listeners[${this.uid}, ${eventType}]`,
           "Array",
           "push",
           [
-            `{listener[${this.uid}, ${etype}, ${v5(
-              callback.toString(),
-              "00000000-0000-0000-0000-000000000000",
-            )}, ${opts.capture ? "capture" : "bubble"}]}`,
+            `{listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+              opts.capture ? "capture" : "bubble"
+            }]}`,
           ],
         ),
       );
@@ -298,7 +298,7 @@ class Listenable extends Disposable {
    * //
    */
   unlisten(
-    etype: string,
+    eventType: string,
     callback: (event: Event) => void,
     options?: {
       capture?: boolean;
@@ -310,8 +310,13 @@ class Listenable extends Disposable {
 
     const maps = internal.listenersMaps.get(this);
     if (typeof maps === "undefined") {
-      this.logger.error(Logger.error(1, Errors.LISTENERS_MAP_MISSED));
-      throw new Error(Errors.LISTENERS_MAP_MISSED);
+      this.logger.error(
+        Logger.error(
+          ErrorsCode.LISTENERS_MAP_MISSED,
+          ErrorsDescription.LISTENERS_MAP_MISSED,
+        ),
+      );
+      throw new Error(ErrorsDescription.LISTENERS_MAP_MISSED);
     }
 
     const opts = {
@@ -321,19 +326,19 @@ class Listenable extends Disposable {
       this.logger.trace(
         Logger.checkpoint(
           "mdln/types/public/Listenable/unlisten",
-          `options.capture is set to ${options.capture}`,
+          `options.capture is set to ${options.capture.toString()}`,
         ),
       );
 
       opts.capture = options.capture;
     }
 
-    const listeners = maps.get(etype);
+    const listeners = maps.get(eventType);
     if (listeners) {
       this.logger.trace(
         Logger.checkpoint(
           "mdln/types/public/Listenable/unlisten",
-          `listeners[${this.uid}, ${etype}] is exist`,
+          `listeners[${this.uid}, ${eventType}] is exist`,
         ),
       );
 
@@ -346,20 +351,18 @@ class Listenable extends Disposable {
           this.logger.trace(
             Logger.checkpoint(
               "mdln/types/public/Listenable/unlisten",
-              `listener[${this.uid}, ${etype}, ${v5(
-                callback.toString(),
-                "00000000-0000-0000-0000-000000000000",
-              )}, ${opts.capture ? "capture" : "bubble"}] is exist`,
+              `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+                opts.capture ? "capture" : "bubble"
+              }] is exist`,
             ),
           );
 
           listeners[i].removed = true;
           this.logger.debug(
             Logger.variable_changed(
-              `listener[${this.uid}, ${etype}, ${v5(
-                callback.toString(),
-                "00000000-0000-0000-0000-000000000000",
-              )}, ${opts.capture ? "capture" : "bubble"}]`,
+              `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
+                opts.capture ? "capture" : "bubble"
+              }]`,
               "EventListener",
               "removed",
               [listeners[i].removed],
@@ -369,7 +372,7 @@ class Listenable extends Disposable {
           listeners.splice(i, 1);
           this.logger.debug(
             Logger.variable_changed(
-              `listeners[${this.uid}, ${etype}]`,
+              `listeners[${this.uid}, ${eventType}]`,
               "Array",
               "splice",
               [i, 1],
@@ -381,17 +384,17 @@ class Listenable extends Disposable {
         this.logger.trace(
           Logger.checkpoint(
             "mdln/types/public/Listenable/unlisten",
-            `listeners[${this.uid}, ${etype}] is empty`,
+            `listeners[${this.uid}, ${eventType}] is empty`,
           ),
         );
 
-        maps.delete(etype);
+        maps.delete(eventType);
         this.logger.debug(
           Logger.variable_changed(
             `listenersMap<${this.uid}>`,
             "Map",
             "delete",
-            [etype],
+            [eventType],
           ),
         );
       }
@@ -404,12 +407,12 @@ class Listenable extends Disposable {
   /**
    * //
    */
-  dispatch(etype: string, scope?: unknown): boolean {
+  dispatch(eventType: string, eventScope?: unknown): boolean {
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Listenable/dispatch", "start"),
     );
 
-    const result = dispatchEvent(this, etype, scope);
+    const result = dispatchEvent(this, eventType, eventScope);
 
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Listenable/dispatch", "end"),

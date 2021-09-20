@@ -19,7 +19,7 @@ const cb1 = (evt: Event) => {
 const cb2 = (evt: Event) => {
   events.push(evt);
   phases.push(evt.phase);
-  evt.stopPropagation();
+  evt.stop();
 };
 
 describe("@imazzine/core dispatchEvent helper", () => {

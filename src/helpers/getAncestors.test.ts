@@ -1,6 +1,6 @@
 import getAncestors from "./getAncestors";
 import getInternalState from "./getInternalState";
-import Errors from "../enums/Errors";
+import ErrorsDescription from "../enums/ErrorsDescription";
 import Listenable from "../types/public/Listenable";
 import Node from "../types/public/Node";
 
@@ -109,6 +109,6 @@ describe("@imazzine/core getAncestors helper", () => {
     internal.nodesIndices.delete(n5);
     expect(() => {
       getAncestors(sn1);
-    }).toThrow(Errors.NODE_INDEX_MISSED);
+    }).toThrow(ErrorsDescription.NODE_INDEX_MISSED);
   });
 });

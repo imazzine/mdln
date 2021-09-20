@@ -27,7 +27,7 @@ describe("@imazzine/core Event class", () => {
   });
   test("preventDefault method change event state", () => {
     expect(() => {
-      evt.preventDefault();
+      evt.prevent();
     }).not.toThrow();
     expect(evt.type).toEqual("test");
     expect(typeof evt.stack).toEqual("string");
@@ -40,7 +40,7 @@ describe("@imazzine/core Event class", () => {
   });
   test("stopPropagation method change event state", () => {
     expect(() => {
-      evt.stopPropagation();
+      evt.stop();
     }).not.toThrow();
     expect(evt.type).toEqual("test");
     expect(typeof evt.stack).toEqual("string");
@@ -55,8 +55,8 @@ describe("@imazzine/core Event class", () => {
     const binder = new EventBinder(EventPhase.NONE, l1, l2);
     binder.passive = true;
     evt = new Event("test", binder);
-    evt.preventDefault();
-    evt.stopPropagation();
+    evt.prevent();
+    evt.stop();
     expect(evt.prevented).toBeFalsy();
     expect(evt.stopped).toBeFalsy();
   });

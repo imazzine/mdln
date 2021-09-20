@@ -2,7 +2,7 @@ import getInternalState from "../../helpers/getInternalState";
 import Errors from "../../enums/Errors";
 import NodeIndex from "../internal/NodeIndex";
 import Monitorable from "./Monitorable";
-import Disposable from "./Disposable";
+import Destructible from "./Destructible";
 import Listenable from "./Listenable";
 import Node from "./Node";
 

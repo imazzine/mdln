@@ -4,8 +4,8 @@ import Listenable from "../public/Listenable";
 class EventBinder {
   phase: EventPhase;
   passive = false;
-  stopped = false;
-  prevented = false;
+  stopped: false | Date = false;
+  prevented: false | Date = false;
   target: Listenable;
   current: Listenable;
   constructor(phase: EventPhase, target: Listenable, current: Listenable) {

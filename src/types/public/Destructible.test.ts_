@@ -2,11 +2,11 @@ import { jest } from "@jest/globals";
 import Errors from "../../enums/Errors";
 import getInternalState from "../../helpers/getInternalState";
 import Monitorable from "./Monitorable";
-import Disposable from "./Disposable";
+import Destructible from "./Destructible";
 
 class MyChild extends Disposable {
-  $dispose() {
-    super.$dispose();
+  $_dispose() {
+    super.$_dispose();
   }
 }
 

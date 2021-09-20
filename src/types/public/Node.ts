@@ -1,17 +1,24 @@
 import getInternalState from "../../helpers/getInternalState";
+import { construct } from "./Monitorable";
+import { destruct } from "./Destructible";
 import Listenable from "./Listenable";
 import NodeIndex from "../internal/NodeIndex";
-import Errors from "../../enums/Errors";
+import ErrorsCode from "../../enums/ErrorsCode";
+import ErrorsDescription from "../../enums/ErrorsDescription";
 import Logger from "./Logger";
-import { threadId } from "worker_threads";
 
 const internal = getInternalState();
 
 function _getIndexObject(node: Node): NodeIndex {
   const index = internal.nodesIndices.get(node);
   if (!index) {
-    node.logger.error(Logger.error(1, Errors.NODE_INDEX_MISSED));
-    throw new Error(Errors.NODE_INDEX_MISSED);
+    node.logger.error(
+      Logger.error(
+        ErrorsCode.NODE_INDEX_MISSED,
+        ErrorsDescription.NODE_INDEX_MISSED,
+      ),
+    );
+    throw new Error(ErrorsDescription.NODE_INDEX_MISSED);
   } else {
     return index;
   }
@@ -22,8 +29,13 @@ function _assertChild(parent: Node, child: Node): void {
   const pIndex = _getIndexObject(parent);
   const i = pIndex.children.indexOf(child);
   if (!~i) {
-    parent.logger.error(Logger.error(1, Errors.NODE_MISSED_IN_CHILDREN));
-    throw new Error(Errors.NODE_MISSED_IN_CHILDREN);
+    parent.logger.error(
+      Logger.error(
+        ErrorsCode.NODE_MISSED_IN_CHILDREN,
+        ErrorsDescription.NODE_MISSED_IN_CHILDREN,
+      ),
+    );
+    throw new Error(ErrorsDescription.NODE_MISSED_IN_CHILDREN);
   }
 }
 
@@ -105,11 +117,8 @@ class Node extends Listenable {
     return children;
   }
 
-  /**
-   * //
-   */
-  constructor() {
-    super();
+  protected [construct](): void {
+    super[construct]();
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Node/constructor", "start"),
     );
@@ -132,7 +141,6 @@ class Node extends Listenable {
         true,
       ),
     );
-
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Node/constructor", "end"),
     );
@@ -142,7 +150,7 @@ class Node extends Listenable {
    * @override
    * @internal
    */
-  $_dispose(): void {
+  protected [destruct](): void {
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Node/$_dispose", "start"),
     );
@@ -156,7 +164,7 @@ class Node extends Listenable {
       ),
     );
     for (let i = 0; i < curIndex.children.length; i++) {
-      curIndex.children[i].dispose();
+      curIndex.children[i].destruct();
     }
     this.logger.trace(
       Logger.checkpoint(
@@ -193,7 +201,7 @@ class Node extends Listenable {
       ]),
     );
 
-    super.$_dispose();
+    super[destruct]();
 
     this.logger.trace(
       Logger.checkpoint("mdln/types/public/Node/$_dispose", "end"),

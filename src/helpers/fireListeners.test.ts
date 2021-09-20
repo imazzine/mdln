@@ -4,7 +4,7 @@ import Listenable from "../types/public/Listenable";
 import Event from "../types/public/Event";
 import EventBinder from "../types/internal/EventBinder";
 import EventPhase from "../enums/EventPhase";
-import Errors from "../enums/Errors";
+import Errors from "../enums/ErrorsDescription";
 
 const internal = getInternalState();
 
@@ -33,7 +33,7 @@ describe("@imazzine/core fireListeners helper", () => {
       fireListeners(eb, evt, false);
     }).not.toThrow();
     expect(events.length).toEqual(0);
-    l.dispose();
+    l.destruct();
   });
   test("fireListeners works with enabled listener", () => {
     const l = new Listenable();
@@ -47,7 +47,7 @@ describe("@imazzine/core fireListeners helper", () => {
     expect(events.length).toEqual(2);
     expect(events[0]).toStrictEqual(evt);
     expect(events[1]).toStrictEqual(evt);
-    l.dispose();
+    l.destruct();
   });
   test("fireListeners works with enabled once listener", () => {
     const l = new Listenable();
@@ -60,7 +60,7 @@ describe("@imazzine/core fireListeners helper", () => {
     }).not.toThrow();
     expect(events.length).toEqual(3);
     expect(events[2]).toStrictEqual(evt);
-    l.dispose();
+    l.destruct();
   });
   test("fireListeners works with disabled listener", () => {
     const l = new Listenable();
@@ -75,12 +75,12 @@ describe("@imazzine/core fireListeners helper", () => {
     l.unlisten("etype", cb, { capture: true });
 
     l.listen("etype", cb);
-    evt.stopPropagation();
+    evt.stop();
     expect(() => {
       fireListeners(eb, evt, false);
     }).not.toThrow();
     expect(events.length).toEqual(3);
 
-    l.dispose();
+    l.destruct();
   });
 });

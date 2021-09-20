@@ -1,74 +1,89 @@
 import EventPhase from "../../enums/EventPhase";
 import getStack from "../../helpers/getStack";
 import EventBinder from "../internal/EventBinder";
+import Logger from "./Logger";
 import Listenable from "./Listenable";
 
 /**
  * //
  */
 class Event {
-  #type: string;
-  #binder: EventBinder;
-  #instantiation_stack: string;
-  #instantiation_timestamp: number;
-  #scope?: unknown;
+  #_type: string;
+  #_binder: EventBinder;
+  #_stack: string;
+  #_created: Date;
+  #_scope?: unknown;
 
   get type(): string {
-    return this.#type;
+    return this.#_type;
   }
 
   get stack(): string {
-    return this.#instantiation_stack;
+    return this.#_stack;
   }
 
-  get timestamp(): number {
-    return this.#instantiation_timestamp;
+  get created(): Date {
+    return this.#_created;
   }
 
   get target(): Listenable {
-    return this.#binder.target;
+    return this.#_binder.target;
   }
 
   get current(): Listenable {
-    return this.#binder.current;
+    return this.#_binder.current;
   }
 
   get phase(): EventPhase {
-    return this.#binder.phase;
+    return this.#_binder.phase;
   }
 
-  get prevented(): boolean {
-    return this.#binder.prevented;
+  get prevented(): false | Date {
+    return this.#_binder.prevented;
   }
 
-  get stopped(): boolean {
-    return this.#binder.stopped;
+  get stopped(): false | Date {
+    return this.#_binder.stopped;
   }
 
   get scope(): unknown {
-    return this.#scope || {};
+    return this.#_scope || null;
   }
 
   /**
    * Class constructor.
    */
   constructor(etype: string, binder: EventBinder, scope?: unknown) {
-    this.#type = etype;
-    this.#binder = binder;
-    this.#scope = scope;
-    this.#instantiation_stack = getStack("Instantiation stack");
-    this.#instantiation_timestamp = Date.now();
+    this.#_type = etype;
+    this.#_binder = binder;
+    this.#_scope = scope;
+    this.#_stack = getStack("Instantiation stack");
+    this.#_created = new Date();
   }
 
-  stopPropagation(): void {
-    if (!this.#binder.passive) {
-      this.#binder.stopped = true;
+  stop(): void {
+    if (!this.#_binder.passive) {
+      this.#_binder.stopped = new Date();
+      this.target.logger.debug(
+        Logger.variable_changed(`binder`, "EventBinder", "stopped", [
+          this.#_binder.stopped.toUTCString(),
+        ]),
+      );
+    } else {
+      this.target.logger.warn("stop() ignored for passive event");
     }
   }
 
-  preventDefault(): void {
-    if (!this.#binder.passive) {
-      this.#binder.prevented = true;
+  prevent(): void {
+    if (!this.#_binder.passive) {
+      this.#_binder.prevented = new Date();
+      this.target.logger.debug(
+        Logger.variable_changed(`binder`, "EventBinder", "prevented", [
+          this.#_binder.prevented.toUTCString(),
+        ]),
+      );
+    } else {
+      this.target.logger.warn("prevent() ignored for passive event");
     }
   }
 }

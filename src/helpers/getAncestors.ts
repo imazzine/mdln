@@ -1,6 +1,8 @@
 import getInternalState from "./getInternalState";
-import Errors from "../enums/Errors";
+import ErrorsCode from "../enums/ErrorsCode";
+import ErrorsDescription from "../enums/ErrorsDescription";
 import Listenable from "../types/public/Listenable";
+import Logger from "../types/public/Logger";
 
 const internal = getInternalState();
 
@@ -16,7 +18,13 @@ function getAncestors(node: Listenable): Array<Listenable> {
       ancestors.push(ancestor);
       index = internal.nodesIndices.get(ancestor);
       if (!index) {
-        throw new Error(Errors.NODE_INDEX_MISSED);
+        node.logger.error(
+          Logger.error(
+            ErrorsCode.NODE_INDEX_MISSED,
+            ErrorsDescription.NODE_INDEX_MISSED,
+          ),
+        );
+        throw new Error(ErrorsDescription.NODE_INDEX_MISSED);
       } else {
         ancestor = index.parent;
       }
