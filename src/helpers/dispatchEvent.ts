@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Declaration of the dispatchEvent function.
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ */
+
 import EventPhase from "../enums/EventPhase";
 import Logger from "../types/public/Logger";
 import Event from "../types/public/Event";
@@ -7,15 +14,20 @@ import getAncestors from "./getAncestors";
 import fireListeners from "./fireListeners";
 
 /**
- * //
+ * Dispatches an event with the specified type and scope, and calls all
+ * listeners listening for events of this type, putting generated event
+ * object to the listener's callback.
+ *
+ * If any of the listeners returns false OR calls `event.prevent()` then this
+ * function will return false. If one of the capture listeners calls
+ * event.stop(), then the bubble listeners won't fire.
  */
 function dispatchEvent(
   node: Listenable,
   type: string,
   scope?: unknown,
 ): boolean {
-  node.logger.trace(Logger.checkpoint("mdln/helpers/dispatchEvent", "start"));
-
+  // construct an event binder
   const binder = new EventBinder(EventPhase.NONE, node, node);
   node.logger.debug(
     Logger.variable_changed(`binder`, "EventBinder", "constructor", [
@@ -25,6 +37,7 @@ function dispatchEvent(
     ]),
   );
 
+  // construct an event
   const event = new Event(type, binder, scope);
   node.logger.debug(
     Logger.variable_changed(`event`, "Event", "constructor", [
@@ -34,57 +47,46 @@ function dispatchEvent(
     ]),
   );
 
+  // get object's ancestors if any
   const ancestors: Array<Listenable> = getAncestors(node);
 
-  node.logger.trace(
-    Logger.checkpoint("mdln/helpers/dispatchEvent", "capturing ancestors"),
-  );
+  // run capturing phase cycle
   for (let i = ancestors.length - 1; i >= 0; i--) {
     binder.phase = EventPhase.CAPTURING_PHASE;
     node.logger.debug(
       Logger.variable_changed(`binder`, "EventBinder", "phase", [binder.phase]),
     );
-
-    binder.current = ancestors[i];
+    binder.handler = ancestors[i];
     node.logger.debug(
-      Logger.variable_changed(`binder`, "EventBinder", "current", [
-        `{${binder.current.uid}}`,
+      Logger.variable_changed(`binder`, "EventBinder", "handler", [
+        `{${binder.handler.uid}}`,
       ]),
     );
-
     fireListeners(binder, event, true);
   }
-  if (!binder.stopped) {
-    node.logger.trace(
-      Logger.checkpoint("mdln/helpers/dispatchEvent", "capturing at target"),
-    );
 
+  // run capturing at target if event wasn't stoped
+  if (!binder.stopped) {
     binder.phase = EventPhase.AT_TARGET;
     node.logger.debug(
       Logger.variable_changed(`binder`, "EventBinder", "phase", [binder.phase]),
     );
-
-    binder.current = node;
+    binder.handler = node;
     node.logger.debug(
       Logger.variable_changed(`binder`, "EventBinder", "current", [
-        `{${binder.current.uid}}`,
+        `{${binder.handler.uid}}`,
       ]),
     );
-
     fireListeners(binder, event, true);
   }
-  if (!binder.stopped) {
-    node.logger.trace(
-      Logger.checkpoint("mdln/helpers/dispatchEvent", "bubbling at target"),
-    );
 
+  // run bubbling at target if event wasn't stoped
+  if (!binder.stopped) {
     fireListeners(binder, event, false);
   }
-  if (!binder.stopped) {
-    node.logger.trace(
-      Logger.checkpoint("mdln/helpers/dispatchEvent", "bubbling ancestors"),
-    );
 
+  // run bubbling phase cycle if event wasn't stoped
+  if (!binder.stopped) {
     for (let i = 0; !binder.stopped && i < ancestors.length; i++) {
       binder.phase = EventPhase.BUBBLING_PHASE;
       node.logger.debug(
@@ -92,23 +94,21 @@ function dispatchEvent(
           binder.phase,
         ]),
       );
-
-      binder.current = ancestors[i];
+      binder.handler = ancestors[i];
       node.logger.debug(
         Logger.variable_changed(`binder`, "EventBinder", "current", [
-          `{${binder.current.uid}}`,
+          `{${binder.handler.uid}}`,
         ]),
       );
-
       fireListeners(binder, event, false);
     }
   }
+
+  // unset event phase
   binder.phase = EventPhase.NONE;
   node.logger.debug(
     Logger.variable_changed(`binder`, "EventBinder", "phase", [binder.phase]),
   );
-
-  node.logger.trace(Logger.checkpoint("mdln/helpers/dispatchEvent", "end"));
   return !binder.stopped;
 }
 export default dispatchEvent;

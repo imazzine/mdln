@@ -5,11 +5,11 @@ import getInternalState from "../../helpers/getInternalState";
 const internal = getInternalState();
 
 class Checkpoint {
-  label: string;
-  point: string;
-  constructor(label: string, point: string) {
-    this.label = label;
-    this.point = point;
+  name: string;
+  value: string;
+  constructor(name: string, value: string) {
+    this.name = name;
+    this.value = value;
   }
 }
 
@@ -237,10 +237,10 @@ class Logger {
   }
 
   public static checkpoint = function (
-    flow: string,
-    point: string,
+    name: string,
+    value: string,
   ): Checkpoint {
-    return new Checkpoint(flow, point);
+    return new Checkpoint(name, value);
   };
 
   public static monitorable_constructed(): MonitorableConstructed {

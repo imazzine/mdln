@@ -4,7 +4,7 @@ import Listenable from "../types/public/Listenable";
 import Event from "../types/public/Event";
 import EventBinder from "../types/internal/EventBinder";
 import EventPhase from "../enums/EventPhase";
-import Errors from "../enums/ErrorsDescription";
+import Errors from "../enums/ErrorDescription";
 
 const internal = getInternalState();
 

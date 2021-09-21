@@ -8,8 +8,8 @@
  */
 
 // enums
-import ErrorsCode from "./enums/ErrorsCode";
-import ErrorsDescription from "./enums/ErrorsDescription";
+import ErrorCode from "./enums/ErrorCode";
+import ErrorDescription from "./enums/ErrorDescription";
 import LogLevel from "./enums/LogLevel";
 import EventPhase from "./enums/EventPhase";
 
@@ -32,8 +32,8 @@ export {
   getStack,
   setLevel,
   setLogger,
-  ErrorsCode,
-  ErrorsDescription,
+  ErrorCode,
+  ErrorDescription,
   LogLevel,
   EventPhase,
   Logger,

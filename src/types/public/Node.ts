@@ -1,10 +1,17 @@
+/**
+ * @fileoverview Declaration of the Node class.
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ */
+
 import getInternalState from "../../helpers/getInternalState";
 import { construct } from "./Monitorable";
 import { destruct } from "./Destructible";
 import Listenable from "./Listenable";
 import NodeIndex from "../internal/NodeIndex";
-import ErrorsCode from "../../enums/ErrorsCode";
-import ErrorsDescription from "../../enums/ErrorsDescription";
+import ErrorCode from "../../enums/ErrorCode";
+import ErrorDescription from "../../enums/ErrorDescription";
 import Logger from "./Logger";
 
 const internal = getInternalState();
@@ -14,11 +21,11 @@ function _getIndexObject(node: Node): NodeIndex {
   if (!index) {
     node.logger.error(
       Logger.error(
-        ErrorsCode.NODE_INDEX_MISSED,
-        ErrorsDescription.NODE_INDEX_MISSED,
+        ErrorCode.NODE_INDEX_MISSED,
+        ErrorDescription.NODE_INDEX_MISSED,
       ),
     );
-    throw new Error(ErrorsDescription.NODE_INDEX_MISSED);
+    throw new Error(ErrorDescription.NODE_INDEX_MISSED);
   } else {
     return index;
   }
@@ -31,11 +38,11 @@ function _assertChild(parent: Node, child: Node): void {
   if (!~i) {
     parent.logger.error(
       Logger.error(
-        ErrorsCode.NODE_MISSED_IN_CHILDREN,
-        ErrorsDescription.NODE_MISSED_IN_CHILDREN,
+        ErrorCode.NODE_CHILD_MISSED,
+        ErrorDescription.NODE_CHILD_MISSED,
       ),
     );
-    throw new Error(ErrorsDescription.NODE_MISSED_IN_CHILDREN);
+    throw new Error(ErrorDescription.NODE_CHILD_MISSED);
   }
 }
 
@@ -117,12 +124,14 @@ class Node extends Listenable {
     return children;
   }
 
+  /**
+   * @override
+   */
   protected [construct](): void {
     super[construct]();
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/constructor", "start"),
-    );
+    this.logger.trace(Logger.checkpoint("construct", "Node"));
 
+    // construct new node index and add it to the internal state
     internal.nodesIndices.set(this, new NodeIndex());
     this.logger.debug(
       Logger.variable_changed(
@@ -141,46 +150,22 @@ class Node extends Listenable {
         true,
       ),
     );
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/constructor", "end"),
-    );
   }
 
   /**
    * @override
-   * @internal
    */
   protected [destruct](): void {
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/$_dispose", "start"),
-    );
+    this.logger.trace(Logger.checkpoint("destruct", "Node"));
 
+    // get current node index object
     const curIndex = _getIndexObject(this);
-
-    this.logger.trace(
-      Logger.checkpoint(
-        "mdln/types/public/Node/$_dispose",
-        "children disposing start",
-      ),
-    );
     for (let i = 0; i < curIndex.children.length; i++) {
       curIndex.children[i].destruct();
     }
-    this.logger.trace(
-      Logger.checkpoint(
-        "mdln/types/public/Node/$_dispose",
-        "children disposing end",
-      ),
-    );
 
+    // remove current node from the parent if specified
     if (curIndex.parent) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Node/$_dispose",
-          `parent is exist {${curIndex.parent.uid}}`,
-        ),
-      );
-
       const parIndex = _getIndexObject(curIndex.parent);
       const index = parIndex.children.indexOf(this);
       parIndex.children.splice(index, 1);
@@ -194,18 +179,14 @@ class Node extends Listenable {
       );
     }
 
+    // remove current node index from the internal state
     internal.nodesIndices.delete(this);
     this.logger.debug(
       Logger.variable_changed("internal.nodesIndices", "Map", "delete", [
         `{${this.uid}}`,
       ]),
     );
-
     super[destruct]();
-
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/$_dispose", "end"),
-    );
   }
 
   /**

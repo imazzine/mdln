@@ -1,14 +1,40 @@
+/**
+ * @fileoverview Declaration of the EventBinder class.
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ */
+
 import Event from "../public/Event";
 
 /**
- * Helper class for storing certain event listener and its scope in
- * {@link Internal.listenersMaps} map.
+ * Helper class for storing certain event callback and its scope in the
+ * appropriate listenersMaps map.
  */
 class EventListener {
+  /**
+   * Added callback function.
+   */
   callback: (evt: Event) => void;
+
+  /**
+   * Capture flag. Optional. False by default.
+   */
   capture: boolean;
+
+  /**
+   * Passive flag. Optional. False by default.
+   */
   passive: boolean;
+
+  /**
+   * Removed flag. Optional. False by default.
+   */
   removed: boolean;
+
+  /**
+   * Once flag. Optional. False by default.
+   */
   once: boolean;
 
   /**

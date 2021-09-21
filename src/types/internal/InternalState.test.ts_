@@ -19,7 +19,7 @@ describe("@imazzine/core InternalState class", () => {
     expect(internal.level).toEqual(LogLevel.INFO);
   });
   test("internal.undisposed property is an empty Map", () => {
-    expect(internal.undisposed.size).toEqual(0);
+    expect(internal.undestructed.size).toEqual(0);
   });
   test("internal.listenersMaps property is an empty Map", () => {
     expect(internal.listenersMaps.size).toEqual(0);

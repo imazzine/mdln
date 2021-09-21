@@ -1,6 +1,13 @@
+/**
+ * @fileoverview Declaration of the Destructible class and [destruct] symbol.
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ */
+
+import ErrorCode from "../../enums/ErrorCode";
+import ErrorDescription from "../../enums/ErrorDescription";
 import getInternalState from "../../helpers/getInternalState";
-import ErrorsCode from "../../enums/ErrorsCode";
-import ErrorsDescription from "../../enums/ErrorsDescription";
 import { construct, Monitorable } from "./Monitorable";
 import Logger from "./Logger";
 
@@ -10,17 +17,19 @@ const destructed = Symbol("destructed");
 const destruct = Symbol("destruct");
 
 /**
- * Class that provides destruction layer for the mdln-objects. It responds for
- * the `destruct thread`. If an instance requires cleanup, it should extends
- * this class. Examples of cleanup that can be done:
+ * Class that provides destruction layer for the `mdln`-objects. It responds for
+ * the object `destruct thread`.
+ *
+ * As a structure it does not provide any additional public properties.
+ *
+ * Examples of cleanup that can be done:
  *
  * 1. remove event listeners;
- * 2. cancel timers (setTimeout, setInterval);
- * 3. call destruct method on other destructible objects hold by current
- *    object;
- * 4. close connections (e.g. WebSockets, DB, etc.).
+ * 2. cancel timers (`setTimeout`, `setInterval`);
+ * 3. call `destruct` method on other destructible objects hold by current;
+ * 4. close connections (e.g. `WebSockets`, `DB`, etc.).
  *
- * Note that it's not required to delete properties or set them to null as
+ * Note that it's not required to delete properties or set them to `null` as
  * garbage collector will collect them assuming that references to current
  * object will be lost after it is destructed.
  */
@@ -36,17 +45,10 @@ class Destructible extends Monitorable {
   private [destructed]: boolean | Date = false;
 
   /**
-   * Determines whether the mdln-object is in the `destruct thread` or not.
-   */
-  get destructing(): boolean {
-    return this[destructing];
-  }
-
-  /**
-   * Timestamp of the mdln-object destructed moment or false, if object is not
+   * Timestamp of the object destruction moment or false, if object is not
    * destructed.
    */
-  get destructed(): boolean | Date {
+  public get destructed(): boolean | Date {
     return this[destructed];
   }
 
@@ -72,7 +74,7 @@ class Destructible extends Monitorable {
     );
 
     // add object to the internal undisposed map
-    internal.undisposed.set(this.uid, this);
+    internal.undestructed.set(this.uid, this);
     this.logger.debug(
       Logger.variable_changed(
         "internal.undisposed",
@@ -88,10 +90,9 @@ class Destructible extends Monitorable {
    * Performs appropriate piece of the `destruct thread` and logs all
    * destruction related data under the same thread uid.
    *
-   *
-   * Classes that extend Destructible should override this method. Not
+   * Classes that extend `Destructible` should override this method. Not
    * reentrant. To avoid calling it twice, it must only be called from the
-   * subclas's symbolic [destruct] method.
+   * subclass's symbolic `[destruct]` method.
    *
    * @example
    * ```typescript
@@ -112,12 +113,12 @@ class Destructible extends Monitorable {
     this.logger.trace(Logger.checkpoint("destruct", "Destructible"));
     if (!this[destructing]) {
       this.logger.error(
-        Logger.error(ErrorsCode.DESTRUCT_CALL, ErrorsDescription.DESTRUCT_CALL),
+        Logger.error(ErrorCode.DESTRUCT_CALL, ErrorDescription.DESTRUCT_CALL),
       );
-      throw new Error(ErrorsDescription.DESTRUCT_CALL);
+      throw new Error(ErrorDescription.DESTRUCT_CALL);
     } else {
       // delete object from the internal undisposed map
-      internal.undisposed.delete(this.uid);
+      internal.undestructed.delete(this.uid);
       this.logger.debug(
         Logger.variable_changed(
           "internal.undisposed",
@@ -151,22 +152,14 @@ class Destructible extends Monitorable {
   }
 
   /**
-   * Disposes of the object. If the object hasn't already been disposed of,
-   * calls {@link Disposable.$dispose}. Classes that extend Disposable
-   * should override {@link Disposable.$dispose} in order to cleanup
-   * references, resources and other disposable objects.
-   * @throws {@link ErrorsDescription.DESTRUCT_IMPL}
-   */
-
-  /**
-   * Destruct the object. If the object hasn't already been destructed, calls
-   * symbolic [destruct] method to run `destruct thread`. Logs new warning
-   * if object has already been destructed.
+   * Destruct the `mdln`-object. If the object hasn't already been destructed, calls
+   * symbolic {@link [destruct] | `[destruct]`} method to start the
+   * `destruct thread`. Logs new warning if object has already been destructed.
    */
   public destruct(): void {
     Logger.start_thread();
     if (this.destructed) {
-      this.logger.warn(`Object{${this.uid}} is alredy destructed`);
+      this.logger.warn(`{${this.uid}} is alredy destructed`);
     } else {
       // enable destruct thread
       this[destructing] = true;
@@ -178,17 +171,21 @@ class Destructible extends Monitorable {
         ),
       );
 
-      // run [construct] hierarchy
-      this[destruct]();
+      // safe run [destruct] hierarchy
+      try {
+        this[destruct]();
+      } finally {
+        Logger.stop_thread();
+      }
+
+      // assert destruct result
       if (!this[destructed] || this[destructing]) {
-        // TODO (buntarb): cleaning up logic here?
+        // TODO (buntarb): cleaning up/restore state here?
         this.logger.error(
-          Logger.error(
-            ErrorsCode.DESTRUCT_IMPL,
-            ErrorsDescription.DESTRUCT_IMPL,
-          ),
+          Logger.error(ErrorCode.DESTRUCT_IMPL, ErrorDescription.DESTRUCT_IMPL),
         );
-        throw new Error(ErrorsDescription.DESTRUCT_IMPL);
+        Logger.stop_thread();
+        throw new Error(ErrorDescription.DESTRUCT_IMPL);
       }
       this.logger.info(Logger.disposable_disposed());
     }

@@ -1,13 +1,20 @@
-import getInternalState from "./getInternalState";
-import ErrorsCode from "../enums/ErrorsCode";
-import ErrorsDescription from "../enums/ErrorsDescription";
+/**
+ * @fileoverview Declaration of the getAncestors function.
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ */
+
+import ErrorCode from "../enums/ErrorCode";
+import ErrorDescription from "../enums/ErrorDescription";
 import Listenable from "../types/public/Listenable";
 import Logger from "../types/public/Logger";
+import getInternalState from "./getInternalState";
 
 const internal = getInternalState();
 
 /**
- * //
+ * Returns ancestors for a given mdln-object.
  */
 function getAncestors(node: Listenable): Array<Listenable> {
   const ancestors: Array<Listenable> = [];
@@ -20,11 +27,11 @@ function getAncestors(node: Listenable): Array<Listenable> {
       if (!index) {
         node.logger.error(
           Logger.error(
-            ErrorsCode.NODE_INDEX_MISSED,
-            ErrorsDescription.NODE_INDEX_MISSED,
+            ErrorCode.NODE_INDEX_MISSED,
+            ErrorDescription.NODE_INDEX_MISSED,
           ),
         );
-        throw new Error(ErrorsDescription.NODE_INDEX_MISSED);
+        throw new Error(ErrorDescription.NODE_INDEX_MISSED);
       } else {
         ancestor = index.parent;
       }

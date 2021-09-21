@@ -1,33 +1,47 @@
+/**
+ * @fileoverview Declaration of the Listenable class.
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ */
+
+import ErrorCode from "../../enums/ErrorCode";
+import ErrorDescription from "../../enums/ErrorDescription";
 import getUid from "../../helpers/getUid";
 import getInternalState from "../../helpers/getInternalState";
 import dispatchEvent from "../../helpers/dispatchEvent";
-import ErrorsCode from "../../enums/ErrorsCode";
-import ErrorsDescription from "../../enums/ErrorsDescription";
 import EventListener from "../internal/EventListener";
-import { construct } from "./Monitorable";
-import { destruct, Destructible } from "./Destructible";
 import Event from "./Event";
 import Logger from "./Logger";
+import { construct } from "./Monitorable";
+import { destruct, Destructible } from "./Destructible";
 
 const internal = getInternalState();
 
 /**
- * An implementation of W3C EventTarget-like interface (capture/bubble mechanism,
- * stopping event propagation, preventing default actions). Extends Disposable
- * and Monitorable behavior. In core components inheritance hierarchy it
- * responds for basic communication logic. Also, you may subclass this class
- * to turn your class into a monitorable, disposable and listenable node.
+ * Class that provides communication layer for the `mdln`-objects. It responds
+ * for the object's `listen tread`, `unlisten tread` and the `dispatch thread`.
+ *
+ * As a structure it does not provide any additional public properties.
+ *
+ * Communication approach is very similar to W3C
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/EventTarget | `EventTarget`}
+ * interface with it's `capture` and `bubble` mechanism, stopping event
+ * propagation and preventing default actions.
+ *
+ * Extends {@link Destructible} and {@link Monitorable} behavior. You may subclass this class
+ * to turn your class into a monitorable, disposable and listenable object.
  */
 class Listenable extends Destructible {
+  /**
+   * @override
+   */
   protected [construct](): void {
     super[construct]();
+    this.logger.trace(Logger.checkpoint("construct", "Listenable"));
 
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/constructor", "start"),
-    );
-
+    // create and add new listeners map to the internal listeners maps map
     internal.listenersMaps.set(this, new Map());
-
     this.logger.debug(
       Logger.variable_changed(
         `listenersMap[${this.uid}]`,
@@ -45,22 +59,16 @@ class Listenable extends Destructible {
         true,
       ),
     );
-
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/constructor", "end"),
-    );
   }
 
   /**
    * @override
    */
   protected [destruct](): void {
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/$_dispose", "start"),
-    );
+    this.logger.trace(Logger.checkpoint("destruct", "Listenable"));
 
+    // delete listeners map from the internal listeners maps map
     internal.listenersMaps.delete(this);
-
     this.logger.debug(
       Logger.variable_changed(
         `internal.listenersMaps`,
@@ -70,14 +78,13 @@ class Listenable extends Destructible {
         true,
       ),
     );
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/$_dispose", "end"),
-    );
     super[destruct]();
   }
 
   /**
-   * //
+   * Adds an event listener. A listener can only be added once to an object and
+   * if it is added again only `passive` and `once` options are applied to the
+   * registered one. Execute not modifiable `listen thread`.
    */
   listen(
     eventType: string,
@@ -88,99 +95,51 @@ class Listenable extends Destructible {
       once?: boolean;
     },
   ): void {
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/listen", "start"),
-    );
+    Logger.start_thread();
 
-    const maps = internal.listenersMaps.get(this);
-    if (typeof maps === "undefined") {
-      this.logger.error(
-        Logger.error(
-          ErrorsCode.LISTENERS_MAP_MISSED,
-          ErrorsDescription.LISTENERS_MAP_MISSED,
-        ),
-      );
-      throw new Error(ErrorsDescription.LISTENERS_MAP_MISSED);
-    }
-
+    // parse options
     const opts = {
       capture: false,
       passive: false,
       once: false,
     };
-    if (typeof options !== "undefined") {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Listenable/listen",
-          "options are defined",
+    if (options) {
+      opts.capture = !!options.capture;
+      opts.passive = !!options.passive;
+      opts.once = !!options.once;
+    }
+    this.logger.trace(
+      Logger.checkpoint(
+        "listen",
+        JSON.stringify({
+          eventType: eventType,
+          callback: getUid(callback),
+          options: opts,
+        }),
+      ),
+    );
+
+    // get object's listeners map
+    const listenersMap = internal.listenersMaps.get(this);
+    if (typeof listenersMap === "undefined") {
+      // TODO (buntarb): cleaning up logic here?
+      this.logger.error(
+        Logger.error(
+          ErrorCode.LISTENERS_MAP_MISSED,
+          ErrorDescription.LISTENERS_MAP_MISSED,
         ),
       );
-
-      if (typeof options.capture === "undefined") {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            "options.capture is unset",
-          ),
-        );
-
-        opts.capture = false;
-      } else {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            `options.capture is set to ${options.capture.toString()}`,
-          ),
-        );
-
-        opts.capture = options.capture;
-      }
-      if (typeof options.passive === "undefined") {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            "options.passive is unset",
-          ),
-        );
-        opts.passive = false;
-      } else {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            `options.passive is set to ${options.passive.toString()}`,
-          ),
-        );
-        opts.passive = options.passive;
-      }
-      if (typeof options.once === "undefined") {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            "options.once is unset",
-          ),
-        );
-        opts.once = false;
-      } else {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            `options.once is set to ${options.once.toString()}`,
-          ),
-        );
-        opts.once = options.once;
-      }
+      Logger.stop_thread();
+      throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
     }
 
+    // initialise listener variable, get listeners array for the given event
+    // type
     let listener = null;
-    let listeners = maps.get(eventType);
-    if (!listeners) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Listenable/listen",
-          `listeners[${this.uid}, ${eventType}] in not exist`,
-        ),
-      );
+    let listeners = listenersMap.get(eventType);
 
+    // construct and add listeners array if not exists
+    if (!listeners) {
       listeners = [];
       this.logger.debug(
         Logger.variable_changed(
@@ -190,22 +149,17 @@ class Listenable extends Destructible {
           [],
         ),
       );
-
-      maps.set(eventType, listeners);
+      listenersMap.set(eventType, listeners);
       this.logger.debug(
         Logger.variable_changed(`listenersMap[${this.uid}]`, "Map", "set", [
           eventType,
           `{listeners[${this.uid}, ${eventType}]}`,
         ]),
       );
-    } else {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Listenable/listen",
-          `listeners[${this.uid}, ${eventType}] is exist`,
-        ),
-      );
     }
+
+    // find and update (if exists and not removed) a listener equivalent to the
+    // specified in arguments
     for (let i = 0; i < listeners.length; i++) {
       if (
         !listeners[i].removed &&
@@ -213,15 +167,6 @@ class Listenable extends Destructible {
         listeners[i].capture === opts.capture
       ) {
         listener = listeners[i];
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/listen",
-            `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
-              opts.capture ? "capture" : "bubble"
-            }] is exist`,
-          ),
-        );
-
         listener.passive = opts.passive;
         this.logger.debug(
           Logger.variable_changed(
@@ -233,7 +178,6 @@ class Listenable extends Destructible {
             [listener.passive],
           ),
         );
-
         listener.once = opts.once;
         this.logger.debug(
           Logger.variable_changed(
@@ -247,16 +191,9 @@ class Listenable extends Destructible {
         );
       }
     }
-    if (!listener) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Listenable/listen",
-          `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
-            opts.capture ? "capture" : "bubble"
-          }] is not exist`,
-        ),
-      );
 
+    // construct new listener and add it to the listeners array
+    if (!listener) {
       listener = new EventListener(
         callback,
         opts.capture,
@@ -271,10 +208,15 @@ class Listenable extends Destructible {
           }]`,
           "EventListener",
           "constructor",
-          [callback.toString(), opts.capture, opts.passive, false, opts.once],
+          [
+            listener.callback.toString(),
+            listener.capture,
+            listener.passive,
+            listener.removed,
+            listener.once,
+          ],
         ),
       );
-
       listeners.push(listener);
       this.logger.debug(
         Logger.variable_changed(
@@ -289,13 +231,12 @@ class Listenable extends Destructible {
         ),
       );
     }
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/listen", "end"),
-    );
+    Logger.stop_thread();
   }
 
   /**
-   * //
+   * Removes an event listener which was added with the {@link listen | `listen`}.
+   * Execute not modifiable `unlisten thread`.
    */
   unlisten(
     eventType: string,
@@ -304,59 +245,50 @@ class Listenable extends Destructible {
       capture?: boolean;
     },
   ): void {
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/unlisten", "start"),
-    );
+    Logger.start_thread();
 
-    const maps = internal.listenersMaps.get(this);
-    if (typeof maps === "undefined") {
-      this.logger.error(
-        Logger.error(
-          ErrorsCode.LISTENERS_MAP_MISSED,
-          ErrorsDescription.LISTENERS_MAP_MISSED,
-        ),
-      );
-      throw new Error(ErrorsDescription.LISTENERS_MAP_MISSED);
-    }
-
+    // parse options
     const opts = {
       capture: false,
     };
-    if (typeof options?.capture !== "undefined") {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Listenable/unlisten",
-          `options.capture is set to ${options.capture.toString()}`,
+    if (options) {
+      opts.capture = !!options.capture;
+    }
+    this.logger.trace(
+      Logger.checkpoint(
+        "unlisten",
+        JSON.stringify({
+          eventType: eventType,
+          callback: getUid(callback),
+          options: opts,
+        }),
+      ),
+    );
+
+    // get object's listeners map
+    const listenersMap = internal.listenersMaps.get(this);
+    if (typeof listenersMap === "undefined") {
+      this.logger.error(
+        Logger.error(
+          ErrorCode.LISTENERS_MAP_MISSED,
+          ErrorDescription.LISTENERS_MAP_MISSED,
         ),
       );
-
-      opts.capture = options.capture;
+      Logger.stop_thread();
+      throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
     }
 
-    const listeners = maps.get(eventType);
+    // get listeners array for the given event type
+    const listeners = listenersMap.get(eventType);
     if (listeners) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Listenable/unlisten",
-          `listeners[${this.uid}, ${eventType}] is exist`,
-        ),
-      );
-
+      // find and remove (if exists and not removed) a listener equivalent to
+      // the specified in arguments
       for (let i = 0; i < listeners.length; i++) {
         if (
           !listeners[i].removed &&
           listeners[i].callback === callback &&
           listeners[i].capture === opts.capture
         ) {
-          this.logger.trace(
-            Logger.checkpoint(
-              "mdln/types/public/Listenable/unlisten",
-              `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
-                opts.capture ? "capture" : "bubble"
-              }] is exist`,
-            ),
-          );
-
           listeners[i].removed = true;
           this.logger.debug(
             Logger.variable_changed(
@@ -368,7 +300,6 @@ class Listenable extends Destructible {
               [listeners[i].removed],
             ),
           );
-
           listeners.splice(i, 1);
           this.logger.debug(
             Logger.variable_changed(
@@ -380,15 +311,10 @@ class Listenable extends Destructible {
           );
         }
       }
-      if (listeners.length === 0) {
-        this.logger.trace(
-          Logger.checkpoint(
-            "mdln/types/public/Listenable/unlisten",
-            `listeners[${this.uid}, ${eventType}] is empty`,
-          ),
-        );
 
-        maps.delete(eventType);
+      // remove listeners array for the given event type if it's empty
+      if (listeners.length === 0) {
+        listenersMap.delete(eventType);
         this.logger.debug(
           Logger.variable_changed(
             `listenersMap<${this.uid}>`,
@@ -399,25 +325,39 @@ class Listenable extends Destructible {
         );
       }
     }
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/unlisten", "end"),
-    );
+    Logger.stop_thread();
   }
 
   /**
-   * //
+   * Dispatches an {@link Event | `event`} with the specified `type` and
+   * `scope`, and calls all listeners listening for {@link Event | `events`}
+   * of this type, putting generated {@link Event | `event`} object to the
+   * listener's callback.
+   *
+   * If any of the listeners returns `false` OR calls `event.prevent()` then
+   * this function will return `false`. If one of the capture listeners calls
+   * `event.stop()`, then the bubble listeners won't fire.
+   *
+   * Initialise and finish `dispatch thread`.
    */
   dispatch(eventType: string, eventScope?: unknown): boolean {
+    Logger.start_thread();
     this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/dispatch", "start"),
+      Logger.checkpoint(
+        "dispatch",
+        JSON.stringify({
+          eventType,
+          eventScope: eventScope ? "scope" : undefined,
+        }),
+      ),
     );
 
-    const result = dispatchEvent(this, eventType, eventScope);
-
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Listenable/dispatch", "end"),
-    );
-    return result;
+    // safe call of existing listeners
+    try {
+      return dispatchEvent(this, eventType, eventScope);
+    } finally {
+      Logger.stop_thread();
+    }
   }
 }
 export default Listenable;
