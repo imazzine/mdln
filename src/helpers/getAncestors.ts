@@ -5,11 +5,14 @@
  * @license Apache-2.0
  */
 
-import ErrorCode from "../enums/ErrorCode";
-import ErrorDescription from "../enums/ErrorDescription";
+import { errors } from "../errors"
+import { logs } from "../logs";
+
 import Listenable from "../types/public/Listenable";
-import Logger from "../types/public/Logger";
 import getInternalState from "./getInternalState";
+
+import ErrorCode = errors.ErrorCode;
+import ErrorDescription = errors.ErrorDescription;
 
 const internal = getInternalState();
 
@@ -26,7 +29,7 @@ function getAncestors(node: Listenable): Array<Listenable> {
       index = internal.nodesIndices.get(ancestor);
       if (!index) {
         node.logger.error(
-          Logger.error(
+          logs.message.getError(
             ErrorCode.NODE_INDEX_MISSED,
             ErrorDescription.NODE_INDEX_MISSED,
           ),

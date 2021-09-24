@@ -1,11 +1,12 @@
 /**
- * @fileoverview Declaration of the EventBinder class.
+ * @fileoverview Declaration of the EventListener class.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
  */
 
-import Event from "../public/Event";
+import { events } from "../../events";
+import Event = events.Event;
 
 /**
  * Helper class for storing certain event callback and its scope in the

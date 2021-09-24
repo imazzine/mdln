@@ -5,16 +5,22 @@
  * @license Apache-2.0
  */
 
-import ErrorCode from "../../enums/ErrorCode";
-import ErrorDescription from "../../enums/ErrorDescription";
+import { errors } from "../../errors"
+import { logs } from "../../logs";
+import { symbols } from "../../symbols";
+
 import getInternalState from "../../helpers/getInternalState";
-import { construct, Monitorable } from "./Monitorable";
-import Logger from "./Logger";
+import Monitorable from "./Monitorable";
+
+import ErrorCode = errors.ErrorCode;
+import ErrorDescription = errors.ErrorDescription;
+
+import construct = symbols.construct;
+import destruct = symbols.destruct;
 
 const internal = getInternalState();
-const destructing = Symbol("destructing");
-const destructed = Symbol("destructed");
-const destruct = Symbol("destruct");
+const _destructing = Symbol("_destructing");
+const _destructed = Symbol("_destructed");
 
 /**
  * Class that provides destruction layer for the `mdln`-objects. It responds for
@@ -27,7 +33,7 @@ const destruct = Symbol("destruct");
  * 1. remove event listeners;
  * 2. cancel timers (`setTimeout`, `setInterval`);
  * 3. call `destruct` method on other destructible objects hold by current;
- * 4. close connections (e.g. `WebSockets`, `DB`, etc.).
+ * 4. close connections (e.g. `WebSockets`, `DataBase`, etc.).
  *
  * Note that it's not required to delete properties or set them to `null` as
  * garbage collector will collect them assuming that references to current
@@ -35,21 +41,21 @@ const destruct = Symbol("destruct");
  */
 class Destructible extends Monitorable {
   /**
-   * Symbolic field for the `destructing` boolean state.
+   * Symbolic field for the `_destructing` boolean state.
    */
-  private [destructing] = false;
+  private [_destructing] = false;
 
   /**
-   * Symbolic field for the `destructed` property.
+   * Symbolic field for the `_destructed` property.
    */
-  private [destructed]: boolean | Date = false;
+  private [_destructed]: boolean | Date = false;
 
   /**
    * Timestamp of the object destruction moment or false, if object is not
    * destructed.
    */
   public get destructed(): boolean | Date {
-    return this[destructed];
+    return this[_destructed];
   }
 
   /**
@@ -57,26 +63,26 @@ class Destructible extends Monitorable {
    */
   protected [construct](): void {
     super[construct]();
-    this.logger.trace(Logger.checkpoint("construct", "Destructible"));
+    this.logger.trace(logs.message.getCheckpoint("construct", "Destructible"));
     this.logger.debug(
-      Logger.monitorable_changed(
+      logs.message.getChanged(
         "Destructible",
-        "destructed",
-        this[destructed],
+        "_destructed",
+        this[_destructed],
       ),
     );
     this.logger.debug(
-      Logger.monitorable_changed(
+      logs.message.getChanged(
         "Destructible",
-        "destructing",
-        this[destructing],
+        "_destructing",
+        this[_destructing],
       ),
     );
 
     // add object to the internal undisposed map
     internal.undestructed.set(this.uid, this);
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         "internal.undisposed",
         "Map",
         "set",
@@ -110,17 +116,17 @@ class Destructible extends Monitorable {
    * ```
    */
   protected [destruct](): void {
-    this.logger.trace(Logger.checkpoint("destruct", "Destructible"));
-    if (!this[destructing]) {
+    this.logger.trace(logs.message.getCheckpoint("destruct", "Destructible"));
+    if (!this[_destructing]) {
       this.logger.error(
-        Logger.error(ErrorCode.DESTRUCT_CALL, ErrorDescription.DESTRUCT_CALL),
+        logs.message.getError(ErrorCode.DESTRUCT_CALL, ErrorDescription.DESTRUCT_CALL),
       );
       throw new Error(ErrorDescription.DESTRUCT_CALL);
     } else {
       // delete object from the internal undisposed map
       internal.undestructed.delete(this.uid);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           "internal.undisposed",
           "Map",
           "delete",
@@ -130,22 +136,22 @@ class Destructible extends Monitorable {
       );
 
       // disable destruct thread
-      this[destructing] = false;
+      this[_destructing] = false;
       this.logger.debug(
-        Logger.monitorable_changed(
+        logs.message.getChanged(
           "Destructible",
-          "destructing",
-          this[destructing],
+          "_destructing",
+          this[_destructing],
         ),
       );
 
       // set destructed timestamp
-      this[destructed] = new Date();
+      this[_destructed] = new Date();
       this.logger.debug(
-        Logger.monitorable_changed(
+        logs.message.getChanged(
           "Destructible",
-          "destructed",
-          this[destructed],
+          "_destructed",
+          this[_destructed],
         ),
       );
     }
@@ -157,17 +163,17 @@ class Destructible extends Monitorable {
    * `destruct thread`. Logs new warning if object has already been destructed.
    */
   public destruct(): void {
-    Logger.start_thread();
+    logs.thread.start();
     if (this.destructed) {
       this.logger.warn(`{${this.uid}} is alredy destructed`);
     } else {
       // enable destruct thread
-      this[destructing] = true;
+      this[_destructing] = true;
       this.logger.debug(
-        Logger.monitorable_changed(
+        logs.message.getChanged(
           "Destructible",
-          "destructing",
-          this[destructing],
+          "_destructing",
+          this[_destructing],
         ),
       );
 
@@ -175,22 +181,21 @@ class Destructible extends Monitorable {
       try {
         this[destruct]();
       } finally {
-        Logger.stop_thread();
+        logs.thread.stop();
       }
 
       // assert destruct result
-      if (!this[destructed] || this[destructing]) {
+      if (!this[_destructed] || this[_destructing]) {
         // TODO (buntarb): cleaning up/restore state here?
         this.logger.error(
-          Logger.error(ErrorCode.DESTRUCT_IMPL, ErrorDescription.DESTRUCT_IMPL),
+          logs.message.getError(ErrorCode.DESTRUCT_IMPL, ErrorDescription.DESTRUCT_IMPL),
         );
-        Logger.stop_thread();
+        logs.thread.stop();
         throw new Error(ErrorDescription.DESTRUCT_IMPL);
       }
-      this.logger.info(Logger.disposable_disposed());
+      this.logger.info(logs.message.getDestructed());
     }
-    Logger.stop_thread();
+    logs.thread.stop();
   }
 }
 export default Destructible;
-export { destruct, Destructible };

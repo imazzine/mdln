@@ -6,15 +6,19 @@
  * @license Apache-2.0
  */
 
-import ErrorCode from "../enums/ErrorCode";
-import ErrorDescription from "../enums/ErrorDescription";
+import { errors } from "../errors"
+import { events } from "../events"
+import { logs } from "../logs";
+
 import EventBinder from "../types/internal/EventBinder";
 import EventListener from "../types/internal/EventListener";
-import Logger from "../types/public/Logger";
-import Event from "../types/public/Event";
 import Listenable from "../types/public/Listenable";
 import getInternalState from "./getInternalState";
-import getUid from "./getUid";
+
+import ErrorCode = errors.ErrorCode;
+import ErrorDescription = errors.ErrorDescription;
+import Event = events.Event;
+import getUid = logs.getUid;
 
 const internal = getInternalState();
 
@@ -27,7 +31,7 @@ function _getListenersMaps(
   const maps = internal.listenersMaps.get(node);
   if (!maps) {
     node.logger.error(
-      Logger.error(
+      logs.message.getError(
         ErrorCode.LISTENERS_MAP_MISSED,
         ErrorDescription.LISTENERS_MAP_MISSED,
       ),
@@ -61,7 +65,7 @@ function fireListeners(
         if (binder.passive !== listener.passive) {
           binder.passive = listener.passive;
           event.source.logger.debug(
-            Logger.variable_changed(`binder`, "EventBinder", "passive", [
+            logs.message.getCalled(`binder`, "EventBinder", "passive", [
               binder.passive,
             ]),
           );
@@ -69,7 +73,7 @@ function fireListeners(
 
         // run callback
         event.source.logger.trace(
-          Logger.checkpoint(
+          logs.message.getCheckpoint(
             "start",
             `listener[${event.handler.uid}, ${event.type}, ${getUid(
               listener.callback,
@@ -78,7 +82,7 @@ function fireListeners(
         );
         listener.callback.call(undefined, event);
         event.source.logger.trace(
-          Logger.checkpoint(
+          logs.message.getCheckpoint(
             "end",
             `listener[${event.handler.uid}, ${event.type}, ${getUid(
               listener.callback,

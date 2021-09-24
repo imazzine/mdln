@@ -5,13 +5,16 @@
  * @license Apache-2.0
  */
 
-import EventPhase from "../enums/EventPhase";
-import Logger from "../types/public/Logger";
-import Event from "../types/public/Event";
+import { events } from "../events";
+import { logs } from "../logs";
+
 import Listenable from "../types/public/Listenable";
 import EventBinder from "../types/internal/EventBinder";
 import getAncestors from "./getAncestors";
 import fireListeners from "./fireListeners";
+
+import EventPhase = events.EventPhase;
+import Event = events.Event;
 
 /**
  * Dispatches an event with the specified type and scope, and calls all
@@ -30,7 +33,7 @@ function dispatchEvent(
   // construct an event binder
   const binder = new EventBinder(EventPhase.NONE, node, node);
   node.logger.debug(
-    Logger.variable_changed(`binder`, "EventBinder", "constructor", [
+    logs.message.getCalled(`binder`, "EventBinder", "constructor", [
       EventPhase.NONE,
       `{${node.uid}}`,
       `{${node.uid}}`,
@@ -40,7 +43,7 @@ function dispatchEvent(
   // construct an event
   const event = new Event(type, binder, scope);
   node.logger.debug(
-    Logger.variable_changed(`event`, "Event", "constructor", [
+    logs.message.getCalled(`event`, "Event", "constructor", [
       type,
       "{binder}",
       scope,
@@ -54,11 +57,11 @@ function dispatchEvent(
   for (let i = ancestors.length - 1; i >= 0; i--) {
     binder.phase = EventPhase.CAPTURING_PHASE;
     node.logger.debug(
-      Logger.variable_changed(`binder`, "EventBinder", "phase", [binder.phase]),
+      logs.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
     );
     binder.handler = ancestors[i];
     node.logger.debug(
-      Logger.variable_changed(`binder`, "EventBinder", "handler", [
+      logs.message.getCalled(`binder`, "EventBinder", "handler", [
         `{${binder.handler.uid}}`,
       ]),
     );
@@ -69,11 +72,11 @@ function dispatchEvent(
   if (!binder.stopped) {
     binder.phase = EventPhase.AT_TARGET;
     node.logger.debug(
-      Logger.variable_changed(`binder`, "EventBinder", "phase", [binder.phase]),
+      logs.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
     );
     binder.handler = node;
     node.logger.debug(
-      Logger.variable_changed(`binder`, "EventBinder", "current", [
+      logs.message.getCalled(`binder`, "EventBinder", "current", [
         `{${binder.handler.uid}}`,
       ]),
     );
@@ -90,13 +93,13 @@ function dispatchEvent(
     for (let i = 0; !binder.stopped && i < ancestors.length; i++) {
       binder.phase = EventPhase.BUBBLING_PHASE;
       node.logger.debug(
-        Logger.variable_changed(`binder`, "EventBinder", "phase", [
+        logs.message.getCalled(`binder`, "EventBinder", "phase", [
           binder.phase,
         ]),
       );
       binder.handler = ancestors[i];
       node.logger.debug(
-        Logger.variable_changed(`binder`, "EventBinder", "current", [
+        logs.message.getCalled(`binder`, "EventBinder", "current", [
           `{${binder.handler.uid}}`,
         ]),
       );
@@ -107,7 +110,7 @@ function dispatchEvent(
   // unset event phase
   binder.phase = EventPhase.NONE;
   node.logger.debug(
-    Logger.variable_changed(`binder`, "EventBinder", "phase", [binder.phase]),
+    logs.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
   );
   return !binder.stopped;
 }

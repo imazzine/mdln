@@ -7,37 +7,21 @@
  * [[include:README.md]]
  */
 
-// enums
-import ErrorCode from "./enums/ErrorCode";
-import ErrorDescription from "./enums/ErrorDescription";
-import LogLevel from "./enums/LogLevel";
-import EventPhase from "./enums/EventPhase";
-
-// helpers
-import getUid from "./helpers/getUid";
-import getStack from "./helpers/getStack";
-import setLevel from "./helpers/setLevel";
-import setLogger from "./helpers/setLogger";
-
-// types
-import Logger from "./types/public/Logger";
-import Event from "./types/public/Event";
 import Monitorable from "./types/public/Monitorable";
 import Destructible from "./types/public/Destructible";
 import Listenable from "./types/public/Listenable";
 import Node from "./types/public/Node";
 
+import { logs } from "./logs";
+import { errors } from "./errors";
+import { events } from "./events";
+import { symbols } from "./symbols";
+
 export {
-  getUid,
-  getStack,
-  setLevel,
-  setLogger,
-  ErrorCode,
-  ErrorDescription,
-  LogLevel,
-  EventPhase,
-  Logger,
-  Event,
+  logs,
+  errors,
+  events,
+  symbols,
   Monitorable,
   Destructible,
   Listenable,

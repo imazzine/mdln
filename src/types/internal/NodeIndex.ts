@@ -1,5 +1,5 @@
 /**
- * @fileoverview Declaration of the EventBinder class.
+ * @fileoverview Declaration of the NodeIndex class.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0

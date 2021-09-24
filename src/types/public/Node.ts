@@ -5,14 +5,18 @@
  * @license Apache-2.0
  */
 
+import { errors } from "../../errors"
+import { logs } from "../../logs";
+import { symbols } from "../../symbols";
+
 import getInternalState from "../../helpers/getInternalState";
-import { construct } from "./Monitorable";
-import { destruct } from "./Destructible";
 import Listenable from "./Listenable";
 import NodeIndex from "../internal/NodeIndex";
-import ErrorCode from "../../enums/ErrorCode";
-import ErrorDescription from "../../enums/ErrorDescription";
-import Logger from "./Logger";
+
+import ErrorCode = errors.ErrorCode;
+import ErrorDescription = errors.ErrorDescription;
+import construct = symbols.construct;
+import destruct = symbols.destruct;
 
 const internal = getInternalState();
 
@@ -20,7 +24,7 @@ function _getIndexObject(node: Node): NodeIndex {
   const index = internal.nodesIndices.get(node);
   if (!index) {
     node.logger.error(
-      Logger.error(
+      logs.message.getError(
         ErrorCode.NODE_INDEX_MISSED,
         ErrorDescription.NODE_INDEX_MISSED,
       ),
@@ -37,7 +41,7 @@ function _assertChild(parent: Node, child: Node): void {
   const i = pIndex.children.indexOf(child);
   if (!~i) {
     parent.logger.error(
-      Logger.error(
+      logs.message.getError(
         ErrorCode.NODE_CHILD_MISSED,
         ErrorDescription.NODE_CHILD_MISSED,
       ),
@@ -47,11 +51,22 @@ function _assertChild(parent: Node, child: Node): void {
 }
 
 /**
- * //
+ * Class that provides ability to build trees of `mdln`-objects and traverse
+ * through it. It responds for the not modifiable object's `insert tread`,
+ * `replace tread` and the `remove thread`.
+ *
+ * You may subclass this class to turn your class into a monitorable
+ * destructible listenable node and build more complex tree business structures
+ * from such nodes.
+ *
+ * As a structure it additionally hosts references to the tree root node,
+ * parent, previous and next nodes, and children nodes array. There is also a
+ * flag which determine whether the node is connected to some tree or not.
  */
 class Node extends Listenable {
   /**
-   * //
+   * Read-only property returns a boolean indicating whether the node is
+   * connected to the tree.
    */
   get connected(): boolean {
     const index = _getIndexObject(this);
@@ -59,7 +74,8 @@ class Node extends Listenable {
   }
 
   /**
-   * //
+   * Read-only property returns a root node of the tree if node is connected,
+   * and reference to itself otherwise.
    */
   get root(): Node {
     let root: Node;
@@ -75,7 +91,7 @@ class Node extends Listenable {
   }
 
   /**
-   * //
+   * Read-only property returns a parent node if exist, null otherwise.
    */
   get parent(): Node | null {
     const index = _getIndexObject(this);
@@ -83,7 +99,8 @@ class Node extends Listenable {
   }
 
   /**
-   * //
+   * Read-only property returns a next node from the parent's children array
+   * if it exists, null otherwise.
    */
   get next(): Node | null {
     const index = _getIndexObject(this);
@@ -98,7 +115,8 @@ class Node extends Listenable {
   }
 
   /**
-   * //
+   * Read-only property returns a previous node from the parent's children
+   * array if it exists, null otherwise.
    */
   get previous(): Node | null {
     const index = _getIndexObject(this);
@@ -113,7 +131,8 @@ class Node extends Listenable {
   }
 
   /**
-   * //
+   * Read-only property returns a children nodes array, empty if there is no
+   * any child nodes.
    */
   get children(): Array<Node> {
     const index = _getIndexObject(this);
@@ -129,12 +148,12 @@ class Node extends Listenable {
    */
   protected [construct](): void {
     super[construct]();
-    this.logger.trace(Logger.checkpoint("construct", "Node"));
+    this.logger.trace(logs.message.getCheckpoint("construct", "Node"));
 
     // construct new node index and add it to the internal state
     internal.nodesIndices.set(this, new NodeIndex());
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `nodeIndex[${this.uid}]`,
         "NodeIndex",
         "constructor",
@@ -142,7 +161,7 @@ class Node extends Listenable {
       ),
     );
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         "internal.nodesIndices",
         "Map",
         "set",
@@ -156,7 +175,7 @@ class Node extends Listenable {
    * @override
    */
   protected [destruct](): void {
-    this.logger.trace(Logger.checkpoint("destruct", "Node"));
+    this.logger.trace(logs.message.getCheckpoint("destruct", "Node"));
 
     // get current node index object
     const curIndex = _getIndexObject(this);
@@ -170,7 +189,7 @@ class Node extends Listenable {
       const index = parIndex.children.indexOf(this);
       parIndex.children.splice(index, 1);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `nodeIndex[${curIndex.parent.uid}].children`,
           "Array",
           "splice",
@@ -182,7 +201,7 @@ class Node extends Listenable {
     // remove current node index from the internal state
     internal.nodesIndices.delete(this);
     this.logger.debug(
-      Logger.variable_changed("internal.nodesIndices", "Map", "delete", [
+      logs.message.getCalled("internal.nodesIndices", "Map", "delete", [
         `{${this.uid}}`,
       ]),
     );
@@ -190,29 +209,41 @@ class Node extends Listenable {
   }
 
   /**
-   * //
+   * Removes `child` node from the children list if it is already there, then
+   * inserts it as a child `before` a reference node, if specified, and the last
+   * in the children list otherwise.
+   *
+   * @param child Child node to insert.
+   * @param before Reference node to insert before.
    */
   insert(child: Node, before?: Node): Node {
+    logs.thread.start();
     this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/insert", "start"),
+      logs.message.getCheckpoint(
+        "insert",
+        JSON.stringify({
+          child: `{${child.uid}}`,
+          before: before ? `{${before.uid}}` : undefined,
+        }),
+      ),
     );
 
+    // assertion
     before && _assertChild(this, before);
+
+    // get current node (parent) index and child node index
     const pIndex = _getIndexObject(this);
     const cIndex = _getIndexObject(child);
+
+    // try to find child in the existing children list
     const children = pIndex.children;
     const i = children.indexOf(child);
-    if (~i) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Node/insert",
-          `{${child.uid}} is a child`,
-        ),
-      );
 
+    // remove child from the children list if exist
+    if (~i) {
       children.splice(i, 1);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `nodeIndex[${this.uid}].children`,
           "Array",
           "splice",
@@ -220,18 +251,11 @@ class Node extends Listenable {
         ),
       );
     }
-
     if (!before) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Node/insert",
-          `before not specified`,
-        ),
-      );
-
+      // push child to the end of the children list if before is not specified
       children.push(child);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `nodeIndex[${this.uid}].children`,
           "Array",
           "push",
@@ -239,17 +263,11 @@ class Node extends Listenable {
         ),
       );
     } else {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Node/insert",
-          `before is set to {${before.uid}}`,
-        ),
-      );
-
+      // add child before the specified node
       const idx = children.indexOf(before);
       children.splice(idx, 0, child);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `nodeIndex[${this.uid}].children`,
           "Array",
           "splice",
@@ -258,49 +276,55 @@ class Node extends Listenable {
       );
     }
 
+    // set current node as a parent for child
     cIndex.parent = this;
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `nodeIndex[${child.uid}]`,
         "NodeIndex",
         "parent",
         [`{${this.uid}}`],
       ),
     );
-
-    this.logger.info(Logger.node_inserted(child.uid, before?.uid));
-
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/insert", "end"),
-    );
+    this.logger.info(logs.message.getInserted(child.uid, before?.uid));
+    logs.thread.stop();
     return child;
   }
 
   /**
-   * //
+   * Removes `to` node from the children list if it's already there,
+   * and replace `existing` children node with it.
+   *
+   * @param existing Node to replace.
+   * @param to Node to replace with.
    */
   replace(existing: Node, to: Node): Node {
+    logs.thread.start();
     this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/replace", "start"),
+      logs.message.getCheckpoint(
+        "replace",
+        JSON.stringify({
+          existing: `{${existing.uid}}`,
+          to: `{${to.uid}}`,
+        }),
+      ),
     );
 
+    // assertion
     _assertChild(this, existing);
+
+    // get current node (parent) index and child nodes indices
     const pIndex = _getIndexObject(this);
     const eIndex = _getIndexObject(existing);
     const tIndex = _getIndexObject(to);
     const children = pIndex.children;
-    if (~children.indexOf(to)) {
-      this.logger.trace(
-        Logger.checkpoint(
-          "mdln/types/public/Node/replace",
-          `{${to.uid}} is alredy in the children list`,
-        ),
-      );
 
+    // remove to-node from parent children list if exist
+    if (~children.indexOf(to)) {
       const idx = children.indexOf(to);
       children.splice(idx, 1);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `nodeIndex[${this.uid}].children`,
           "Array",
           "splice",
@@ -309,9 +333,10 @@ class Node extends Listenable {
       );
     }
 
+    // unset existing-node parent field
     eIndex.parent = undefined;
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `nodeIndex[${existing.uid}]`,
         "NodeIndex",
         "parent",
@@ -319,48 +344,58 @@ class Node extends Listenable {
       ),
     );
 
+    // set to-node parent field
     tIndex.parent = this;
     this.logger.debug(
-      Logger.variable_changed(`nodeIndex[${to.uid}]`, "NodeIndex", "parent", [
+      logs.message.getCalled(`nodeIndex[${to.uid}]`, "NodeIndex", "parent", [
         `{${this.uid}}`,
       ]),
     );
 
+    // replace existing-node to to-node
     const idx = children.indexOf(existing);
     children.splice(idx, 1, to);
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `nodeIndex[${this.uid}].children`,
         "Array",
         "splice",
         [idx, 1, `{${to.uid}}`],
       ),
     );
-
-    this.logger.info(Logger.node_replaced(existing.uid, to.uid));
-
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/replace", "end"),
-    );
+    this.logger.info(logs.message.getReplaced(existing.uid, to.uid));
+    logs.thread.stop();
     return existing;
   }
 
   /**
-   * //
+   * Removes specified `child` node from the children list.
+   *
+   * @param child Child node to remove.
    */
   remove(child: Node): Node {
+    logs.thread.start();
     this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/remove", "start"),
+      logs.message.getCheckpoint(
+        "remove",
+        JSON.stringify({
+          child: `{${child.uid}}`,
+        }),
+      ),
     );
 
+    // assertions
     _assertChild(this, child);
+
+    // get parent and child indices
     const pIndex = _getIndexObject(this);
     const cIndex = _getIndexObject(child);
 
+    // remove child node from parent children list
     const idx = pIndex.children.indexOf(child);
     pIndex.children.splice(idx, 1);
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `nodeIndex[${this.uid}].children`,
         "Array",
         "splice",
@@ -368,21 +403,18 @@ class Node extends Listenable {
       ),
     );
 
+    // unset child node parent field
     cIndex.parent = undefined;
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `nodeIndex[${child.uid}]`,
         "NodeIndex",
         "parent",
         [undefined],
       ),
     );
-
-    this.logger.info(Logger.node_removed(child.uid));
-
-    this.logger.trace(
-      Logger.checkpoint("mdln/types/public/Node/remove", "end"),
-    );
+    this.logger.info(logs.message.getRemoved(child.uid));
+    logs.thread.stop();
     return child;
   }
 }

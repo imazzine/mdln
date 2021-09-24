@@ -5,8 +5,9 @@
  * @license Apache-2.0
  */
 
-import EventPhase from "../../enums/EventPhase";
+import { events } from "../../events";
 import Listenable from "../public/Listenable";
+import EventPhase = events.EventPhase;
 
 /**
  * Class that holds internal event handling state .

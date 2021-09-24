@@ -5,20 +5,24 @@
  * @license Apache-2.0
  */
 
-import ErrorCode from "../../enums/ErrorCode";
-import ErrorDescription from "../../enums/ErrorDescription";
-import getUid from "../../helpers/getUid";
-import getStack from "../../helpers/getStack";
-import getInternalState from "../../helpers/getInternalState";
-import Logger from "./Logger";
+import { errors } from "../../errors"
+import { logs } from "../../logs";
+import { symbols } from "../../symbols";
 
-const constructing = Symbol("constructing");
-const constructed = Symbol("constructed");
-const uid = Symbol("uid");
-const created = Symbol("created");
-const stack = Symbol("stack");
-const logger = Symbol("logger");
-const construct = Symbol("construct");
+import ErrorCode = errors.ErrorCode;
+import ErrorDescription = errors.ErrorDescription;
+
+import getUid = logs.getUid;
+import getStack = logs.getStack;
+
+import construct = symbols.construct;
+
+const _constructing = Symbol("_constructing");
+const _constructed = Symbol("_constructed");
+const _uid = Symbol("_uid");
+const _created = Symbol("_created");
+const _stack = Symbol("_stack");
+const _logger = Symbol("_logger");
 
 /**
  * Class that provides the basic layer for the `mdln`-objects. It responds for
@@ -29,63 +33,61 @@ const construct = Symbol("construct");
  */
 class Monitorable {
   /**
-   * Symbolic field for the `constructing` boolean state.
+   * Symbolic field for the `_constructing` boolean state.
    */
-  private [constructing] = false;
+  private [_constructing] = false;
 
   /**
-   * Symbolic field for the `constructed` boolean state.
+   * Symbolic field for the `_constructed` boolean state.
    */
-  private [constructed] = false;
+  private [_constructed] = false;
 
   /**
    * Symbolic field for the object's unique UUID-like identifier.
    */
-  private [uid]: string = getUid();
+  private [_uid]: string = getUid();
 
   /**
    * Symbolic field for the object's creation moment timestamp.
    */
-  private [created]: Date = new Date();
+  private [_created]: Date = new Date();
 
   /**
-   * Symbolic field for the object's instantiation `stack`.
+   * Symbolic field for the object's instantiation `_stack`.
    */
-  private [stack]: string = getStack("Instantiation stack");
+  private [_stack]: string = getStack("Instantiation stack");
 
   /**
-   * Symbolic field for the object's associated `logger`.
+   * Symbolic field for the object's associated `_logger`.
    */
-  private [logger]: Logger = new (getInternalState().Logger || Logger)(
-    this[uid],
-  );
+  private [_logger]: logs.logger.Logger = new (logs.logger.getConstructor())(this[_uid]);
 
   /**
    * Object unique UUID-like identifier.
    */
   public get uid(): string {
-    return this[uid];
+    return this[_uid];
   }
 
   /**
    * Object instantiation timestamp.
    */
   public get constructed(): Date {
-    return this[created];
+    return this[_created];
   }
 
   /**
    * Object instantiation stack.
    */
   public get stack(): string {
-    return this[stack];
+    return this[_stack];
   }
 
   /**
    * Object logger.
    */
-  public get logger(): Logger {
-    return this[logger];
+  public get logger(): logs.logger.Logger {
+    return this[_logger];
   }
 
   /**
@@ -109,41 +111,41 @@ class Monitorable {
    * ```
    */
   protected [construct](): void {
-    this.logger.trace(Logger.checkpoint("construct", "Monitorable"));
-    if (this[constructed]) {
+    this.logger.trace(logs.message.getCheckpoint("construct", "Monitorable"));
+    if (this[_constructed]) {
       this.logger.error(
-        Logger.error(ErrorCode.CONSTRUCT_CALL, ErrorDescription.CONSTRUCT_CALL),
+        logs.message.getError(ErrorCode.CONSTRUCT_CALL, ErrorDescription.CONSTRUCT_CALL),
       );
       throw new Error(ErrorDescription.CONSTRUCT_CALL);
     } else {
       this.logger.debug(
-        Logger.monitorable_changed("Monitorable", "uid", this[uid]),
+        logs.message.getChanged("Monitorable", "_uid", this[_uid]),
       );
       this.logger.debug(
-        Logger.monitorable_changed(
+        logs.message.getChanged(
           "Monitorable",
-          "created",
-          this[created].toUTCString(),
+          "_created",
+          this[_created].toUTCString(),
         ),
       );
       this.logger.debug(
-        Logger.monitorable_changed("Monitorable", "stack", this[stack]),
+        logs.message.getChanged("Monitorable", "_stack", this[_stack]),
       );
       this.logger.debug(
-        Logger.monitorable_changed(
+        logs.message.getChanged(
           "Monitorable",
-          "logger",
-          getInternalState().Logger ? "inbound" : "default",
+          "_logger",
+          logs.logger.isUpdated()  ? "updated" : "default",
         ),
       );
 
       // enable construct thread
-      this[constructing] = true;
+      this[_constructing] = true;
       this.logger.debug(
-        Logger.monitorable_changed(
+        logs.message.getChanged(
           "Monitorable",
-          "constructing",
-          this[constructing],
+          "_constructing",
+          this[_constructing],
         ),
       );
     }
@@ -160,45 +162,44 @@ class Monitorable {
    * for the logging purposes information.
    */
   public constructor() {
-    Logger.start_thread();
+    logs.thread.start();
 
     // safe run [construct] hierarchy
     try {
       this[construct]();
     } finally {
-      Logger.stop_thread();
+      logs.thread.stop();
     }
 
-    if (!this[constructing]) {
+    if (!this[_constructing]) {
       this.logger.error(
-        Logger.error(ErrorCode.CONSTRUCT_IMPL, ErrorDescription.CONSTRUCT_IMPL),
+        logs.message.getError(ErrorCode.CONSTRUCT_IMPL, ErrorDescription.CONSTRUCT_IMPL),
       );
-      Logger.stop_thread();
+      logs.thread.stop();
       throw new Error(ErrorDescription.CONSTRUCT_IMPL);
     }
 
     // disable construct thread
-    this[constructing] = false;
+    this[_constructing] = false;
     this.logger.debug(
-      Logger.monitorable_changed(
+      logs.message.getChanged(
         "Monitorable",
-        "constructing",
-        this[constructing],
+        "_constructing",
+        this[_constructing],
       ),
     );
 
     // mark object as constructed
-    this[constructed] = true;
+    this[_constructed] = true;
     this.logger.debug(
-      Logger.monitorable_changed(
+      logs.message.getChanged(
         "Monitorable",
-        "constructed",
-        this[constructed],
+        "_constructed",
+        this[_constructed],
       ),
     );
-    this.logger.info(Logger.monitorable_constructed());
-    Logger.stop_thread();
+    this.logger.info(logs.message.getConstructed());
+    logs.thread.stop();
   }
 }
 export default Monitorable;
-export { construct, Monitorable };

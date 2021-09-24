@@ -5,16 +5,23 @@
  * @license Apache-2.0
  */
 
-import ErrorCode from "../../enums/ErrorCode";
-import ErrorDescription from "../../enums/ErrorDescription";
-import getUid from "../../helpers/getUid";
+import { errors } from "../../errors";
+import { events } from "../../events";
+import { logs } from "../../logs";
+import { symbols } from "../../symbols";
+
 import getInternalState from "../../helpers/getInternalState";
 import dispatchEvent from "../../helpers/dispatchEvent";
 import EventListener from "../internal/EventListener";
-import Event from "./Event";
-import Logger from "./Logger";
-import { construct } from "./Monitorable";
-import { destruct, Destructible } from "./Destructible";
+import Destructible from "./Destructible";
+
+import ErrorCode = errors.ErrorCode;
+import ErrorDescription = errors.ErrorDescription;
+import Event = events.Event;
+
+import getUid = logs.getUid;
+import construct = symbols.construct;
+import destruct = symbols.destruct;
 
 const internal = getInternalState();
 
@@ -29,8 +36,9 @@ const internal = getInternalState();
  * interface with it's `capture` and `bubble` mechanism, stopping event
  * propagation and preventing default actions.
  *
- * Extends {@link Destructible} and {@link Monitorable} behavior. You may subclass this class
- * to turn your class into a monitorable, disposable and listenable object.
+ * Extends {@link Destructible | `Destructible`} and
+ * {@link Monitorable | `Monitorable`} behavior. You may subclass this class to
+ * turn your class into a monitorable, destructible and listenable object.
  */
 class Listenable extends Destructible {
   /**
@@ -38,12 +46,12 @@ class Listenable extends Destructible {
    */
   protected [construct](): void {
     super[construct]();
-    this.logger.trace(Logger.checkpoint("construct", "Listenable"));
+    this.logger.trace(logs.message.getCheckpoint("construct", "Listenable"));
 
     // create and add new listeners map to the internal listeners maps map
     internal.listenersMaps.set(this, new Map());
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `listenersMap[${this.uid}]`,
         "Map",
         "constructor",
@@ -51,7 +59,7 @@ class Listenable extends Destructible {
       ),
     );
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `internal.listenersMaps`,
         "Map",
         "set",
@@ -65,12 +73,12 @@ class Listenable extends Destructible {
    * @override
    */
   protected [destruct](): void {
-    this.logger.trace(Logger.checkpoint("destruct", "Listenable"));
+    this.logger.trace(logs.message.getCheckpoint("destruct", "Listenable"));
 
     // delete listeners map from the internal listeners maps map
     internal.listenersMaps.delete(this);
     this.logger.debug(
-      Logger.variable_changed(
+      logs.message.getCalled(
         `internal.listenersMaps`,
         "Map",
         "delete",
@@ -84,7 +92,17 @@ class Listenable extends Destructible {
   /**
    * Adds an event listener. A listener can only be added once to an object and
    * if it is added again only `passive` and `once` options are applied to the
-   * registered one. Execute not modifiable `listen thread`.
+   * registered one.
+   *
+   * Execute not modifiable `listen thread`.
+   *
+   * @param eventType Event type.
+   * @param callback Callback function to run.
+   * @param options Callback options:
+   * @param options.capture Execute listener on the `capture` phase.
+   * @param options.passive Ignore {@link Event.stop | `event.stop()`} and
+   * {@link Event.prevent | `event.prevent()`} calls from a listener.
+   * @param options.once Remove listener after it was executed first time.
    */
   listen(
     eventType: string,
@@ -95,7 +113,7 @@ class Listenable extends Destructible {
       once?: boolean;
     },
   ): void {
-    Logger.start_thread();
+    logs.thread.start();
 
     // parse options
     const opts = {
@@ -109,7 +127,7 @@ class Listenable extends Destructible {
       opts.once = !!options.once;
     }
     this.logger.trace(
-      Logger.checkpoint(
+      logs.message.getCheckpoint(
         "listen",
         JSON.stringify({
           eventType: eventType,
@@ -124,12 +142,12 @@ class Listenable extends Destructible {
     if (typeof listenersMap === "undefined") {
       // TODO (buntarb): cleaning up logic here?
       this.logger.error(
-        Logger.error(
+        logs.message.getError(
           ErrorCode.LISTENERS_MAP_MISSED,
           ErrorDescription.LISTENERS_MAP_MISSED,
         ),
       );
-      Logger.stop_thread();
+      logs.thread.stop();
       throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
     }
 
@@ -142,7 +160,7 @@ class Listenable extends Destructible {
     if (!listeners) {
       listeners = [];
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `listeners[${this.uid}, ${eventType}]`,
           "Array",
           "constructor",
@@ -151,7 +169,7 @@ class Listenable extends Destructible {
       );
       listenersMap.set(eventType, listeners);
       this.logger.debug(
-        Logger.variable_changed(`listenersMap[${this.uid}]`, "Map", "set", [
+        logs.message.getCalled(`listenersMap[${this.uid}]`, "Map", "set", [
           eventType,
           `{listeners[${this.uid}, ${eventType}]}`,
         ]),
@@ -169,7 +187,7 @@ class Listenable extends Destructible {
         listener = listeners[i];
         listener.passive = opts.passive;
         this.logger.debug(
-          Logger.variable_changed(
+          logs.message.getCalled(
             `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
               opts.capture ? "capture" : "bubble"
             }]`,
@@ -180,7 +198,7 @@ class Listenable extends Destructible {
         );
         listener.once = opts.once;
         this.logger.debug(
-          Logger.variable_changed(
+          logs.message.getCalled(
             `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
               opts.capture ? "capture" : "bubble"
             }]`,
@@ -202,7 +220,7 @@ class Listenable extends Destructible {
         opts.once,
       );
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
             opts.capture ? "capture" : "bubble"
           }]`,
@@ -219,7 +237,7 @@ class Listenable extends Destructible {
       );
       listeners.push(listener);
       this.logger.debug(
-        Logger.variable_changed(
+        logs.message.getCalled(
           `listeners[${this.uid}, ${eventType}]`,
           "Array",
           "push",
@@ -231,12 +249,18 @@ class Listenable extends Destructible {
         ),
       );
     }
-    Logger.stop_thread();
+    logs.thread.stop();
   }
 
   /**
    * Removes an event listener which was added with the {@link listen | `listen`}.
+   *
    * Execute not modifiable `unlisten thread`.
+   *
+   * @param eventType Event type.
+   * @param callback Callback function to run.
+   * @param options Callback options:
+   * @param options.capture Execute listener on the `capture` phase.
    */
   unlisten(
     eventType: string,
@@ -245,7 +269,7 @@ class Listenable extends Destructible {
       capture?: boolean;
     },
   ): void {
-    Logger.start_thread();
+    logs.thread.start();
 
     // parse options
     const opts = {
@@ -255,7 +279,7 @@ class Listenable extends Destructible {
       opts.capture = !!options.capture;
     }
     this.logger.trace(
-      Logger.checkpoint(
+      logs.message.getCheckpoint(
         "unlisten",
         JSON.stringify({
           eventType: eventType,
@@ -269,12 +293,12 @@ class Listenable extends Destructible {
     const listenersMap = internal.listenersMaps.get(this);
     if (typeof listenersMap === "undefined") {
       this.logger.error(
-        Logger.error(
+        logs.message.getError(
           ErrorCode.LISTENERS_MAP_MISSED,
           ErrorDescription.LISTENERS_MAP_MISSED,
         ),
       );
-      Logger.stop_thread();
+      logs.thread.stop();
       throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
     }
 
@@ -291,7 +315,7 @@ class Listenable extends Destructible {
         ) {
           listeners[i].removed = true;
           this.logger.debug(
-            Logger.variable_changed(
+            logs.message.getCalled(
               `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                 opts.capture ? "capture" : "bubble"
               }]`,
@@ -302,7 +326,7 @@ class Listenable extends Destructible {
           );
           listeners.splice(i, 1);
           this.logger.debug(
-            Logger.variable_changed(
+            logs.message.getCalled(
               `listeners[${this.uid}, ${eventType}]`,
               "Array",
               "splice",
@@ -316,7 +340,7 @@ class Listenable extends Destructible {
       if (listeners.length === 0) {
         listenersMap.delete(eventType);
         this.logger.debug(
-          Logger.variable_changed(
+          logs.message.getCalled(
             `listenersMap<${this.uid}>`,
             "Map",
             "delete",
@@ -325,7 +349,7 @@ class Listenable extends Destructible {
         );
       }
     }
-    Logger.stop_thread();
+    logs.thread.stop();
   }
 
   /**
@@ -339,11 +363,14 @@ class Listenable extends Destructible {
    * `event.stop()`, then the bubble listeners won't fire.
    *
    * Initialise and finish `dispatch thread`.
+   *
+   * @param eventType Event type.
+   * @param eventScope User defined data associated with the event.
    */
   dispatch(eventType: string, eventScope?: unknown): boolean {
-    Logger.start_thread();
+    logs.thread.start();
     this.logger.trace(
-      Logger.checkpoint(
+      logs.message.getCheckpoint(
         "dispatch",
         JSON.stringify({
           eventType,
@@ -356,7 +383,7 @@ class Listenable extends Destructible {
     try {
       return dispatchEvent(this, eventType, eventScope);
     } finally {
-      Logger.stop_thread();
+      logs.thread.stop();
     }
   }
 }
