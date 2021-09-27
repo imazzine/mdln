@@ -7,7 +7,6 @@
  */
 
 import { errors } from "../errors"
-import { state } from "../state";
 import { logNS as log } from "../logs";
 import { events as ns0 } from "./Event"
 import { events as ns1 } from "./EventListener";
@@ -20,9 +19,7 @@ export namespace events {
   import EventListener = ns1.EventListener;
   import EventBinder = ns2.EventBinder;
   import Listenable = ns3.Listenable;
-  import getInternalState = state.getInternalState;
   import getUid = log.getUid;
-  const internal = getInternalState();
 
   /**
    * Returns listeners map for a given mdln-object.
@@ -30,7 +27,7 @@ export namespace events {
   function _getListenersMaps(
     node: Listenable,
   ): Map<string, Array<EventListener>> {
-    const maps = internal.listeners.get(node);
+    const maps = ns3.listeners.get(node);
     if (!maps) {
       node.logger.error(
         log.message.getError(

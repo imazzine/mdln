@@ -5,26 +5,26 @@
  * @license Apache-2.0
  */
 
-import { symbols } from "../symbols";
 import { errors } from "../errors"
-import { state } from "../state"
-import { eventsNS as events } from "../events"
-import { logNS as log } from "../logs";
-export namespace nodes {
+import { symbolsNS } from "../symbols";
+import { eventsNS } from "../events"
+import { logNS } from "../logs";
+export namespace tree {
   import ErrorCode = errors.ErrorCode;
   import ErrorDescription = errors.ErrorDescription;
-  import Listenable = events.Listenable;
-  import getInternalState = state.getInternalState;
-  import construct = symbols.construct;
-  import destruct = symbols.destruct;
+  import Listenable = eventsNS.Listenable;
+  import construct = symbolsNS.construct;
+  import destruct = symbolsNS.destruct;
+  import nodes = eventsNS.nodes;
 
-  const internal = getInternalState();
-
-  function _getIndexObject(node: Node): {parent?: Node, children: Array<Node>} {
-    const index = internal.nodes.get(node);
+  /**
+   * Returns node's index object.
+   */
+  function getIndexObject(node: Node): {parent?: Node, children: Array<Node>} {
+    const index = nodes.get(node);
     if (!index) {
       node.logger.error(
-        log.message.getError(
+        logNS.message.getError(
           ErrorCode.NODE_INDEX_MISSED,
           ErrorDescription.NODE_INDEX_MISSED,
         ),
@@ -35,13 +35,16 @@ export namespace nodes {
     }
   }
 
-  function _assertChild(parent: Node, child: Node): void {
-    _getIndexObject(child);
-    const pIndex = _getIndexObject(parent);
+  /**
+   * Assert node's child node.
+   */
+  function assertChild(parent: Node, child: Node): void {
+    getIndexObject(child);
+    const pIndex = getIndexObject(parent);
     const i = pIndex.children.indexOf(child);
     if (!~i) {
       parent.logger.error(
-        log.message.getError(
+        logNS.message.getError(
           ErrorCode.NODE_CHILD_MISSED,
           ErrorDescription.NODE_CHILD_MISSED,
         ),
@@ -69,7 +72,7 @@ export namespace nodes {
      * connected to the tree.
      */
     get connected(): boolean {
-      const index = _getIndexObject(this);
+      const index = getIndexObject(this);
       return index.parent || index.children.length ? true : false;
     }
 
@@ -80,12 +83,12 @@ export namespace nodes {
     get root(): Node {
       let root: Node;
       let parent: Node | undefined;
-      const index = _getIndexObject(this);
+      const index = getIndexObject(this);
       root = this;
       parent = index.parent;
       while (parent) {
         root = parent;
-        parent = _getIndexObject(root).parent;
+        parent = getIndexObject(root).parent;
       }
       return root;
     }
@@ -94,7 +97,7 @@ export namespace nodes {
      * Read-only property returns a parent node if exist, null otherwise.
      */
     get parent(): Node | null {
-      const index = _getIndexObject(this);
+      const index = getIndexObject(this);
       return index.parent || null;
     }
 
@@ -103,7 +106,7 @@ export namespace nodes {
      * if it exists, null otherwise.
      */
     get next(): Node | null {
-      const index = _getIndexObject(this);
+      const index = getIndexObject(this);
       const parent = index.parent;
       if (parent) {
         const i = parent.children.indexOf(this);
@@ -119,7 +122,7 @@ export namespace nodes {
      * array if it exists, null otherwise.
      */
     get previous(): Node | null {
-      const index = _getIndexObject(this);
+      const index = getIndexObject(this);
       const parent = index.parent;
       if (parent) {
         const i = parent.children.indexOf(this);
@@ -135,7 +138,7 @@ export namespace nodes {
      * any child nodes.
      */
     get children(): Array<Node> {
-      const index = _getIndexObject(this);
+      const index = getIndexObject(this);
       const children: Array<Node> = [];
       for (let i = 0; i < index.children.length; i++) {
         children.push(index.children[i]);
@@ -148,15 +151,15 @@ export namespace nodes {
      */
     protected [construct](): void {
       super[construct]();
-      this.logger.trace(log.message.getCheckpoint("construct", "Node"));
+      this.logger.trace(logNS.message.getCheckpoint("construct", "Node"));
 
       // construct new node index and add it to the internal state
-      internal.nodes.set(this, {
+      nodes.set(this, {
         parent: undefined,
         children: [],
       });
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `nodeIndex[${this.uid}]`,
           "NodeIndex",
           "constructor",
@@ -164,8 +167,8 @@ export namespace nodes {
         ),
       );
       this.logger.debug(
-        log.message.getCalled(
-          "internal.nodes",
+        logNS.message.getCalled(
+          "nodes",
           "Map",
           "set",
           [`{${this.uid}}`, `{nodeIndex[${this.uid}]}`],
@@ -178,21 +181,21 @@ export namespace nodes {
      * @override
      */
     protected [destruct](): void {
-      this.logger.trace(log.message.getCheckpoint("destruct", "Node"));
+      this.logger.trace(logNS.message.getCheckpoint("destruct", "Node"));
 
       // get current node index object
-      const curIndex = _getIndexObject(this);
+      const curIndex = getIndexObject(this);
       for (let i = 0; i < curIndex.children.length; i++) {
         curIndex.children[i].destruct();
       }
 
       // remove current node from the parent if specified
       if (curIndex.parent) {
-        const parIndex = _getIndexObject(curIndex.parent);
+        const parIndex = getIndexObject(curIndex.parent);
         const index = parIndex.children.indexOf(this);
         parIndex.children.splice(index, 1);
         this.logger.debug(
-          log.message.getCalled(
+          logNS.message.getCalled(
             `nodeIndex[${curIndex.parent.uid}].children`,
             "Array",
             "splice",
@@ -202,11 +205,11 @@ export namespace nodes {
       }
 
       // remove current node index from the internal state
-      internal.nodes.delete(this);
+      nodes.delete(this);
       this.logger.debug(
-        log.message.getCalled("internal.nodes", "Map", "delete", [
+        logNS.message.getCalled("nodes", "Map", "delete", [
           `{${this.uid}}`,
-        ]),
+        ], true),
       );
       super[destruct]();
     }
@@ -220,9 +223,9 @@ export namespace nodes {
      * @param before Reference node to insert before.
      */
     insert(child: Node, before?: Node): Node {
-      log.thread.start();
+      logNS.thread.start();
       this.logger.trace(
-        log.message.getCheckpoint(
+        logNS.message.getCheckpoint(
           "insert",
           JSON.stringify({
             child: `{${child.uid}}`,
@@ -232,11 +235,11 @@ export namespace nodes {
       );
 
       // assertion
-      before && _assertChild(this, before);
+      before && assertChild(this, before);
 
       // get current node (parent) index and child node index
-      const pIndex = _getIndexObject(this);
-      const cIndex = _getIndexObject(child);
+      const pIndex = getIndexObject(this);
+      const cIndex = getIndexObject(child);
 
       // try to find child in the existing children list
       const children = pIndex.children;
@@ -246,7 +249,7 @@ export namespace nodes {
       if (~i) {
         children.splice(i, 1);
         this.logger.debug(
-          log.message.getCalled(
+          logNS.message.getCalled(
             `nodeIndex[${this.uid}].children`,
             "Array",
             "splice",
@@ -258,7 +261,7 @@ export namespace nodes {
         // push child to the end of the children list if before is not specified
         children.push(child);
         this.logger.debug(
-          log.message.getCalled(
+          logNS.message.getCalled(
             `nodeIndex[${this.uid}].children`,
             "Array",
             "push",
@@ -270,7 +273,7 @@ export namespace nodes {
         const idx = children.indexOf(before);
         children.splice(idx, 0, child);
         this.logger.debug(
-          log.message.getCalled(
+          logNS.message.getCalled(
             `nodeIndex[${this.uid}].children`,
             "Array",
             "splice",
@@ -282,15 +285,15 @@ export namespace nodes {
       // set current node as a parent for child
       cIndex.parent = this;
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `nodeIndex[${child.uid}]`,
           "NodeIndex",
           "parent",
           [`{${this.uid}}`],
         ),
       );
-      this.logger.info(log.message.getInserted(child.uid, before?.uid));
-      log.thread.stop();
+      this.logger.info(logNS.message.getInserted(child.uid, before?.uid));
+      logNS.thread.stop();
       return child;
     }
 
@@ -302,9 +305,9 @@ export namespace nodes {
      * @param to Node to replace with.
      */
     replace(existing: Node, to: Node): Node {
-      log.thread.start();
+      logNS.thread.start();
       this.logger.trace(
-        log.message.getCheckpoint(
+        logNS.message.getCheckpoint(
           "replace",
           JSON.stringify({
             existing: `{${existing.uid}}`,
@@ -314,12 +317,12 @@ export namespace nodes {
       );
 
       // assertion
-      _assertChild(this, existing);
+      assertChild(this, existing);
 
       // get current node (parent) index and child nodes indices
-      const pIndex = _getIndexObject(this);
-      const eIndex = _getIndexObject(existing);
-      const tIndex = _getIndexObject(to);
+      const pIndex = getIndexObject(this);
+      const eIndex = getIndexObject(existing);
+      const tIndex = getIndexObject(to);
       const children = pIndex.children;
 
       // remove to-node from parent children list if exist
@@ -327,7 +330,7 @@ export namespace nodes {
         const idx = children.indexOf(to);
         children.splice(idx, 1);
         this.logger.debug(
-          log.message.getCalled(
+          logNS.message.getCalled(
             `nodeIndex[${this.uid}].children`,
             "Array",
             "splice",
@@ -339,7 +342,7 @@ export namespace nodes {
       // unset existing-node parent field
       eIndex.parent = undefined;
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `nodeIndex[${existing.uid}]`,
           "NodeIndex",
           "parent",
@@ -350,7 +353,7 @@ export namespace nodes {
       // set to-node parent field
       tIndex.parent = this;
       this.logger.debug(
-        log.message.getCalled(`nodeIndex[${to.uid}]`, "NodeIndex", "parent", [
+        logNS.message.getCalled(`nodeIndex[${to.uid}]`, "NodeIndex", "parent", [
           `{${this.uid}}`,
         ]),
       );
@@ -359,15 +362,15 @@ export namespace nodes {
       const idx = children.indexOf(existing);
       children.splice(idx, 1, to);
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `nodeIndex[${this.uid}].children`,
           "Array",
           "splice",
           [idx, 1, `{${to.uid}}`],
         ),
       );
-      this.logger.info(log.message.getReplaced(existing.uid, to.uid));
-      log.thread.stop();
+      this.logger.info(logNS.message.getReplaced(existing.uid, to.uid));
+      logNS.thread.stop();
       return existing;
     }
 
@@ -377,9 +380,9 @@ export namespace nodes {
      * @param child Child node to remove.
      */
     remove(child: Node): Node {
-      log.thread.start();
+      logNS.thread.start();
       this.logger.trace(
-        log.message.getCheckpoint(
+        logNS.message.getCheckpoint(
           "remove",
           JSON.stringify({
             child: `{${child.uid}}`,
@@ -388,17 +391,17 @@ export namespace nodes {
       );
 
       // assertions
-      _assertChild(this, child);
+      assertChild(this, child);
 
       // get parent and child indices
-      const pIndex = _getIndexObject(this);
-      const cIndex = _getIndexObject(child);
+      const pIndex = getIndexObject(this);
+      const cIndex = getIndexObject(child);
 
       // remove child node from parent children list
       const idx = pIndex.children.indexOf(child);
       pIndex.children.splice(idx, 1);
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `nodeIndex[${this.uid}].children`,
           "Array",
           "splice",
@@ -409,15 +412,15 @@ export namespace nodes {
       // unset child node parent field
       cIndex.parent = undefined;
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `nodeIndex[${child.uid}]`,
           "NodeIndex",
           "parent",
           [undefined],
         ),
       );
-      this.logger.info(log.message.getRemoved(child.uid));
-      log.thread.stop();
+      this.logger.info(logNS.message.getRemoved(child.uid));
+      logNS.thread.stop();
       return child;
     }
   }

@@ -22,4 +22,6 @@ export namespace eventsNS {
   export import EventPhase = ns1.EventPhase;
   export import EventListener = ns2.EventListener;
   export import Listenable = ns3.Listenable;
+  export import nodes = ns3.nodes;
+  export import getAncestors = ns3.getAncestors;
 }

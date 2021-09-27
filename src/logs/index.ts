@@ -13,17 +13,8 @@ import { message as msg } from "./message";
 import { log as l } from "./Monitorable";
 
 /**
- * Namespace that provides logging related types.
+ * Index logs namespace.
  */
-export namespace logs {
-  export import getStack = helpers.getStack;
-  export import getUid = helpers.getUid;
-  export import setLevel = lvl.set;
-  export import setLogger = lgr.setConstructor;
-  export import Level = lvl.Level;
-  export import Logger = lgr.Logger;
-}
-
 export namespace logNS {
   export import Monitorable = l.Monitorable;
   export import message = msg;
@@ -33,4 +24,16 @@ export namespace logNS {
   export import getStack = helpers.getStack;
   export import getUid = helpers.getUid;
   export import parseMsg = helpers.parseMsg;
+}
+
+/**
+ * Public logs namespace.
+ */
+export namespace logs {
+  export import getStack = helpers.getStack;
+  export import getUid = helpers.getUid;
+  export import setLevel = lvl.set;
+  export import setLogger = lgr.setConstructor;
+  export import Level = lvl.Level;
+  export import Logger = lgr.Logger;
 }

@@ -6,7 +6,6 @@
  */
 
 import { logNS as log } from "../logs";
-import { state } from "../state";
 import { events as ns0 } from "./EventPhase"
 import { events as ns1 } from "./Event"
 import { events as ns2 } from "./EventBinder"
@@ -17,7 +16,7 @@ export namespace events {
   import EventBinder = ns2.EventBinder;
   import Listenable = ns3.Listenable;
   import Event = ns1.Event;
-  import getAncestors = state.getAncestors;
+  import getAncestors = ns3.getAncestors;
   import fireListeners = ns4.fireListeners;
 
   /**

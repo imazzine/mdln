@@ -5,7 +5,7 @@
  * @license Apache-2.0
  */
 
-import { nodes as ns } from "./Node";
-export namespace nodes {
+import { tree as ns } from "./Node";
+export namespace tree {
   export import Node = ns.Node;
 }

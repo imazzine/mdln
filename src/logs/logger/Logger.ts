@@ -5,13 +5,13 @@
  * @license Apache-2.0
  */
 
-import { symbols } from "../../symbols";
+import { symbolsNS } from "../../symbols";
 import { helpers } from "../helpers";
 import { thread } from "../thread";
 import { level } from "../level";
 import { message as msg } from "../message";
 
-import log = symbols.log;
+import log = symbolsNS.log;
 
 import Level = level.Level;
 import Type = msg.Type;

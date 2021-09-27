@@ -5,10 +5,9 @@
  * @license Apache-2.0
  */
 
-import { symbols } from "../symbols";
 import { errors } from "../errors";
-import { state } from "../state";
-import { logNS as log } from "../logs";
+import { symbolsNS } from "../symbols";
+import { logNS } from "../logs";
 import { events as ns0 } from "./Event";
 import { events as ns1 } from "./EventPhase";
 import { events as ns2 } from "./EventListener";
@@ -16,28 +15,30 @@ import { events as ns3 } from "./EventBinder";
 export namespace events {
   import ErrorCode = errors.ErrorCode;
   import ErrorDescription = errors.ErrorDescription;
-  import Destructible = state.Destructible;
+  import Monitorable = logNS.Monitorable;
   import Event = ns0.Event;
   import EventPhase = ns1.EventPhase;
   import EventListener = ns2.EventListener;
   import EventBinder = ns3.EventBinder;
-  import getInternalState = state.getInternalState;
-  import getAncestors = state.getAncestors;
-  import getUid = log.getUid;
-  import construct = symbols.construct;
-  import destruct = symbols.destruct;
-  const internal = getInternalState();
+  import construct = symbolsNS.construct;
+  import destruct = symbolsNS.destruct;
+  import getUid = logNS.getUid;
+
+  /**
+   * Map of the listenable object listeners maps.
+   */
+  export const listeners: Map<Listenable, Map<string, Array<EventListener>>> = new Map();
 
   /**
    * Returns listeners map for a given mdln-object.
    */
-  function _getListenersMaps(
+  function getListenersMaps(
     node: Listenable,
   ): Map<string, Array<EventListener>> {
-    const maps = internal.listeners.get(node) as Map<string, Array<EventListener>>;
+    const maps = listeners.get(node);
     if (!maps) {
       node.logger.error(
-        log.message.getError(
+        logNS.message.getError(
           ErrorCode.LISTENERS_MAP_MISSED,
           ErrorDescription.LISTENERS_MAP_MISSED,
         ),
@@ -49,6 +50,41 @@ export namespace events {
   }
 
   /**
+   * Map of the nodes indexes.
+   */
+  export const nodes: Map<Listenable, {
+    parent?: Listenable,
+    children: Array<Listenable>
+  }> = new Map();
+
+  /**
+   * Returns ancestors for a given mdln-object.
+   */
+  export function getAncestors(node: Listenable): Array<Listenable> {
+    const ancestors: Array<Listenable> = [];
+    let index = nodes.get(node);
+    if (index) {
+      let ancestor = index.parent;
+      while (ancestor) {
+        ancestors.push(ancestor);
+        index = nodes.get(ancestor);
+        if (!index) {
+          node.logger.error(
+            logNS.message.getError(
+              ErrorCode.NODE_INDEX_MISSED,
+              ErrorDescription.NODE_INDEX_MISSED,
+            ),
+          );
+          throw new Error(ErrorDescription.NODE_INDEX_MISSED);
+        } else {
+          ancestor = index.parent;
+        }
+      }
+    }
+    return ancestors;
+  }
+
+  /**
    * Execute appropriate listeners on `event.current` listenable object.
    */
   function fireListeners(
@@ -57,7 +93,7 @@ export namespace events {
     capture: boolean,
   ): void {
     const listenable = event.handler;
-    const listeners = _getListenersMaps(listenable).get(event.type);
+    const listeners = getListenersMaps(listenable).get(event.type);
     if (listeners) {
       let listener: EventListener;
       for (let i = 0; i < listeners.length; i++) {
@@ -71,7 +107,7 @@ export namespace events {
           if (binder.passive !== listener.passive) {
             binder.passive = listener.passive;
             event.source.logger.debug(
-              log.message.getCalled(`binder`, "EventBinder", "passive", [
+              logNS.message.getCalled(`binder`, "EventBinder", "passive", [
                 binder.passive,
               ]),
             );
@@ -79,7 +115,7 @@ export namespace events {
 
           // run callback
           event.source.logger.trace(
-            log.message.getCheckpoint(
+            logNS.message.getCheckpoint(
               "start",
               `listener[${event.handler.uid}, ${event.type}, ${getUid(
                 listener.callback,
@@ -88,7 +124,7 @@ export namespace events {
           );
           listener.callback.call(undefined, event);
           event.source.logger.trace(
-            log.message.getCheckpoint(
+            logNS.message.getCheckpoint(
               "end",
               `listener[${event.handler.uid}, ${event.type}, ${getUid(
                 listener.callback,
@@ -124,7 +160,7 @@ export namespace events {
     // construct an event binder
     const binder = new EventBinder(EventPhase.NONE, node, node);
     node.logger.debug(
-      log.message.getCalled(`binder`, "EventBinder", "constructor", [
+      logNS.message.getCalled(`binder`, "EventBinder", "constructor", [
         EventPhase.NONE,
         `{${node.uid}}`,
         `{${node.uid}}`,
@@ -134,7 +170,7 @@ export namespace events {
     // construct an event
     const event = new Event(type, binder, scope);
     node.logger.debug(
-      log.message.getCalled(`event`, "Event", "constructor", [
+      logNS.message.getCalled(`event`, "Event", "constructor", [
         type,
         "{binder}",
         scope,
@@ -142,17 +178,17 @@ export namespace events {
     );
 
     // get object's ancestors if any
-    const ancestors: Array<Listenable> = getAncestors(node) as Listenable[];
+    const ancestors: Array<Listenable> = getAncestors(node);
 
     // run capturing phase cycle
     for (let i = ancestors.length - 1; i >= 0; i--) {
       binder.phase = EventPhase.CAPTURING_PHASE;
       node.logger.debug(
-        log.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
+        logNS.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
       );
       binder.handler = ancestors[i];
       node.logger.debug(
-        log.message.getCalled(`binder`, "EventBinder", "handler", [
+        logNS.message.getCalled(`binder`, "EventBinder", "handler", [
           `{${binder.handler.uid}}`,
         ]),
       );
@@ -163,11 +199,11 @@ export namespace events {
     if (!binder.stopped) {
       binder.phase = EventPhase.AT_TARGET;
       node.logger.debug(
-        log.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
+        logNS.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
       );
       binder.handler = node;
       node.logger.debug(
-        log.message.getCalled(`binder`, "EventBinder", "current", [
+        logNS.message.getCalled(`binder`, "EventBinder", "current", [
           `{${binder.handler.uid}}`,
         ]),
       );
@@ -184,13 +220,13 @@ export namespace events {
       for (let i = 0; !binder.stopped && i < ancestors.length; i++) {
         binder.phase = EventPhase.BUBBLING_PHASE;
         node.logger.debug(
-          log.message.getCalled(`binder`, "EventBinder", "phase", [
+          logNS.message.getCalled(`binder`, "EventBinder", "phase", [
             binder.phase,
           ]),
         );
         binder.handler = ancestors[i];
         node.logger.debug(
-          log.message.getCalled(`binder`, "EventBinder", "current", [
+          logNS.message.getCalled(`binder`, "EventBinder", "current", [
             `{${binder.handler.uid}}`,
           ]),
         );
@@ -201,7 +237,7 @@ export namespace events {
     // unset event phase
     binder.phase = EventPhase.NONE;
     node.logger.debug(
-      log.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
+      logNS.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
     );
     return !binder.stopped;
   }
@@ -220,18 +256,18 @@ export namespace events {
    * {@link Monitorable | `Monitorable`} behavior. You may subclass this class to
    * turn your class into a monitorable, destructible and listenable object.
    */
-  export class Listenable extends Destructible {
+  export class Listenable extends Monitorable {
     /**
      * @override
      */
     protected [construct](): void {
       super[construct]();
-      this.logger.trace(log.message.getCheckpoint("construct", "Listenable"));
+      this.logger.trace(logNS.message.getCheckpoint("construct", "Listenable"));
 
       // create and add new listeners map to the internal listeners maps map
-      internal.listeners.set(this, new Map());
+      listeners.set(this, new Map());
       this.logger.debug(
-        log.message.getCalled(
+        logNS.message.getCalled(
           `listenersMap[${this.uid}]`,
           "Map",
           "constructor",
@@ -239,8 +275,8 @@ export namespace events {
         ),
       );
       this.logger.debug(
-        log.message.getCalled(
-          `internal.listeners`,
+        logNS.message.getCalled(
+          `listeners`,
           "Map",
           "set",
           [`{${this.uid}}`, `{listenersMap[${this.uid}]}`],
@@ -253,13 +289,13 @@ export namespace events {
      * @override
      */
     protected [destruct](): void {
-      this.logger.trace(log.message.getCheckpoint("destruct", "Listenable"));
+      this.logger.trace(logNS.message.getCheckpoint("destruct", "Listenable"));
 
       // delete listeners map from the internal listeners maps map
-      internal.listeners.delete(this);
+      listeners.delete(this);
       this.logger.debug(
-        log.message.getCalled(
-          `internal.listeners`,
+        logNS.message.getCalled(
+          `listeners`,
           "Map",
           "delete",
           [`{${this.uid}}`],
@@ -293,7 +329,7 @@ export namespace events {
         once?: boolean;
       },
     ): void {
-      log.thread.start();
+      logNS.thread.start();
 
       // parse options
       const opts = {
@@ -307,7 +343,7 @@ export namespace events {
         opts.once = !!options.once;
       }
       this.logger.trace(
-        log.message.getCheckpoint(
+        logNS.message.getCheckpoint(
           "listen",
           JSON.stringify({
             eventType: eventType,
@@ -318,56 +354,56 @@ export namespace events {
       );
 
       // get object's listeners map
-      const listenersMap = internal.listeners.get(this);
+      const listenersMap = listeners.get(this);
       if (typeof listenersMap === "undefined") {
         // TODO (buntarb): cleaning up logic here?
         this.logger.error(
-          log.message.getError(
+          logNS.message.getError(
             ErrorCode.LISTENERS_MAP_MISSED,
             ErrorDescription.LISTENERS_MAP_MISSED,
           ),
         );
-        log.thread.stop();
+        logNS.thread.stop();
         throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
       }
 
       // initialise listener variable, get listeners array for the given event
       // type
       let listener = null;
-      let listeners = listenersMap.get(eventType) as Array<EventListener>;
+      let eventListeners = listenersMap.get(eventType) as Array<EventListener>;
 
       // construct and add listeners array if not exists
-      if (!listeners) {
-        listeners = [];
+      if (!eventListeners) {
+        eventListeners = [];
         this.logger.debug(
-          log.message.getCalled(
-            `listeners[${this.uid}, ${eventType}]`,
+          logNS.message.getCalled(
+            `eventListeners[${this.uid}, ${eventType}]`,
             "Array",
             "constructor",
             [],
           ),
         );
-        listenersMap.set(eventType, listeners);
+        listenersMap.set(eventType, eventListeners);
         this.logger.debug(
-          log.message.getCalled(`listenersMap[${this.uid}]`, "Map", "set", [
+          logNS.message.getCalled(`listenersMap[${this.uid}]`, "Map", "set", [
             eventType,
-            `{listeners[${this.uid}, ${eventType}]}`,
+            `{eventListeners[${this.uid}, ${eventType}]}`,
           ]),
         );
       }
 
       // find and update (if exists and not removed) a listener equivalent to the
       // specified in arguments
-      for (let i = 0; i < listeners.length; i++) {
+      for (let i = 0; i < eventListeners.length; i++) {
         if (
-          !listeners[i].removed &&
-          listeners[i].callback === callback &&
-          listeners[i].capture === opts.capture
+          !eventListeners[i].removed &&
+          eventListeners[i].callback === callback &&
+          eventListeners[i].capture === opts.capture
         ) {
-          listener = listeners[i];
+          listener = eventListeners[i];
           listener.passive = opts.passive;
           this.logger.debug(
-            log.message.getCalled(
+            logNS.message.getCalled(
               `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                 opts.capture ? "capture" : "bubble"
               }]`,
@@ -378,7 +414,7 @@ export namespace events {
           );
           listener.once = opts.once;
           this.logger.debug(
-            log.message.getCalled(
+            logNS.message.getCalled(
               `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                 opts.capture ? "capture" : "bubble"
               }]`,
@@ -400,7 +436,7 @@ export namespace events {
           opts.once,
         );
         this.logger.debug(
-          log.message.getCalled(
+          logNS.message.getCalled(
             `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
               opts.capture ? "capture" : "bubble"
             }]`,
@@ -415,10 +451,10 @@ export namespace events {
             ],
           ),
         );
-        listeners.push(listener);
+        eventListeners.push(listener);
         this.logger.debug(
-          log.message.getCalled(
-            `listeners[${this.uid}, ${eventType}]`,
+          logNS.message.getCalled(
+            `eventListeners[${this.uid}, ${eventType}]`,
             "Array",
             "push",
             [
@@ -429,7 +465,7 @@ export namespace events {
           ),
         );
       }
-      log.thread.stop();
+      logNS.thread.stop();
     }
 
     /**
@@ -449,7 +485,7 @@ export namespace events {
         capture?: boolean;
       },
     ): void {
-      log.thread.start();
+      logNS.thread.start();
 
       // parse options
       const opts = {
@@ -459,7 +495,7 @@ export namespace events {
         opts.capture = !!options.capture;
       }
       this.logger.trace(
-        log.message.getCheckpoint(
+        logNS.message.getCheckpoint(
           "unlisten",
           JSON.stringify({
             eventType: eventType,
@@ -470,44 +506,44 @@ export namespace events {
       );
 
       // get object's listeners map
-      const listenersMap = internal.listeners.get(this);
+      const listenersMap = listeners.get(this);
       if (typeof listenersMap === "undefined") {
         this.logger.error(
-          log.message.getError(
+          logNS.message.getError(
             ErrorCode.LISTENERS_MAP_MISSED,
             ErrorDescription.LISTENERS_MAP_MISSED,
           ),
         );
-        log.thread.stop();
+        logNS.thread.stop();
         throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
       }
 
       // get listeners array for the given event type
-      const listeners = listenersMap.get(eventType) as Array<EventListener>;
-      if (listeners) {
+      const eventListeners = listenersMap.get(eventType) as Array<EventListener>;
+      if (eventListeners) {
         // find and remove (if exists and not removed) a listener equivalent to
         // the specified in arguments
-        for (let i = 0; i < listeners.length; i++) {
+        for (let i = 0; i < eventListeners.length; i++) {
           if (
-            !listeners[i].removed &&
-            listeners[i].callback === callback &&
-            listeners[i].capture === opts.capture
+            !eventListeners[i].removed &&
+            eventListeners[i].callback === callback &&
+            eventListeners[i].capture === opts.capture
           ) {
-            listeners[i].removed = true;
+            eventListeners[i].removed = true;
             this.logger.debug(
-              log.message.getCalled(
+              logNS.message.getCalled(
                 `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                   opts.capture ? "capture" : "bubble"
                 }]`,
                 "EventListener",
                 "removed",
-                [listeners[i].removed],
+                [eventListeners[i].removed],
               ),
             );
-            listeners.splice(i, 1);
+            eventListeners.splice(i, 1);
             this.logger.debug(
-              log.message.getCalled(
-                `listeners[${this.uid}, ${eventType}]`,
+              logNS.message.getCalled(
+                `eventListeners[${this.uid}, ${eventType}]`,
                 "Array",
                 "splice",
                 [i, 1],
@@ -517,10 +553,10 @@ export namespace events {
         }
 
         // remove listeners array for the given event type if it's empty
-        if (listeners.length === 0) {
+        if (eventListeners.length === 0) {
           listenersMap.delete(eventType);
           this.logger.debug(
-            log.message.getCalled(
+            logNS.message.getCalled(
               `listenersMap<${this.uid}>`,
               "Map",
               "delete",
@@ -529,7 +565,7 @@ export namespace events {
           );
         }
       }
-      log.thread.stop();
+      logNS.thread.stop();
     }
 
     /**
@@ -548,9 +584,9 @@ export namespace events {
      * @param eventScope User defined data associated with the event.
      */
     dispatch(eventType: string, eventScope?: unknown): boolean {
-      log.thread.start();
+      logNS.thread.start();
       this.logger.trace(
-        log.message.getCheckpoint(
+        logNS.message.getCheckpoint(
           "dispatch",
           JSON.stringify({
             eventType,
@@ -563,7 +599,7 @@ export namespace events {
       try {
         return dispatchEvent(this, eventType, eventScope);
       } finally {
-        log.thread.stop();
+        logNS.thread.stop();
       }
     }
   }

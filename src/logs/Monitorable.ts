@@ -6,7 +6,7 @@
  */
 
 import { errors } from "../errors"
-import { symbols } from "../symbols";
+import { symbolsNS } from "../symbols";
 import { helpers } from "./helpers";
 import { logger } from "./logger";
 import { message } from "./message";
@@ -14,16 +14,23 @@ import { thread } from "./thread";
 export namespace log {
   import ErrorCode = errors.ErrorCode;
   import ErrorDescription = errors.ErrorDescription;
+  import _constructing = symbolsNS._constructing;
+  import _constructed = symbolsNS._constructed;
+  import _destructing = symbolsNS._destructing;
+  import _destructed = symbolsNS._destructed;
+  import _uid = symbolsNS._uid;
+  import _created = symbolsNS._created;
+  import _stack = symbolsNS._stack;
+  import _logger = symbolsNS._logger;
+  import construct = symbolsNS.construct;
+  import destruct = symbolsNS.destruct;
   import getUid = helpers.getUid;
   import getStack = helpers.getStack;
-  import construct = symbols.construct;
 
-  const _constructing = Symbol("_constructing");
-  const _constructed = Symbol("_constructed");
-  const _uid = Symbol("_uid");
-  const _created = Symbol("_created");
-  const _stack = Symbol("_stack");
-  const _logger = Symbol("_logger");
+  /**
+   * Map of the undestructed destructable objects.
+   */
+  const undestructed: Map<string, Monitorable> = new Map();
 
   /**
    * Class that provides the basic layer for the `mdln`-objects. It responds for
@@ -36,12 +43,22 @@ export namespace log {
     /**
      * Symbolic field for the `_constructing` boolean state.
      */
-    private [_constructing] = false;
+    private [_constructing]: boolean;
 
     /**
      * Symbolic field for the `_constructed` boolean state.
      */
-    private [_constructed] = false;
+    private [_constructed]: boolean;
+
+    /**
+     * Symbolic field for the `_destructing` boolean state.
+     */
+    private [_destructing]: boolean;
+
+    /**
+     * Symbolic field for the `_destructed` property.
+     */
+    private [_destructed]: boolean | Date;
 
     /**
      * Symbolic field for the object's unique UUID-like identifier.
@@ -75,6 +92,14 @@ export namespace log {
      */
     public get constructed(): Date {
       return this[_created];
+    }
+
+    /**
+     * Timestamp of the object destruction moment or false, if object is not
+     * destructed.
+     */
+    public get destructed(): boolean | Date {
+      return this[_destructed];
     }
 
     /**
@@ -119,6 +144,7 @@ export namespace log {
         );
         throw new Error(ErrorDescription.CONSTRUCT_CALL);
       } else {
+        // run construct thread
         this.logger.debug(
           message.getChanged("Monitorable", "_uid", this[_uid]),
         );
@@ -139,14 +165,108 @@ export namespace log {
             logger.isUpdated()  ? "updated" : "default",
           ),
         );
-
-        // enable construct thread
         this[_constructing] = true;
         this.logger.debug(
           message.getChanged(
             "Monitorable",
             "_constructing",
             this[_constructing],
+          ),
+        );
+        this[_constructed] = false;
+        this.logger.debug(
+          message.getChanged(
+            "Monitorable",
+            "_constructed",
+            this[_constructed],
+          ),
+        );
+        this[_destructing] = false;
+        this.logger.debug(
+          message.getChanged(
+            "Monitorable",
+            "_destructing",
+            this[_destructing],
+          ),
+        );
+        this[_destructed] = false;
+        this.logger.debug(
+          message.getChanged(
+            "Monitorable",
+            "_destructed",
+            this[_destructed],
+          ),
+        );
+        // add object to the undestructed map
+        undestructed.set(this.uid, this);
+        this.logger.debug(
+          message.getCalled(
+            "undestructed",
+            "Map",
+            "set",
+            [this.uid, `{${this.uid}}`],
+            true,
+          ),
+        );
+      }
+    }
+
+    /**
+     * Performs appropriate piece of the `destruct thread` and log all
+     * destruction related data under the same thread uid.
+     *
+     * Classes that extend `Monitorable` should override this method. Not
+     * reentrant. To avoid calling it twice, it must only be called from the
+     * subclass's symbolic `[destruct]` method.
+     *
+     * @example
+     * ```typescript
+     * import { destruct, Monitorable } from "mdln";
+     *
+     * class MyClass extends Monitorable {
+     *   protected [destruct](): void {
+     *     // Destruct logic specific to MyClass.
+     *     // ...
+     *     // Call superclass's [destruct] at the end of the subclass's, like in
+     *     // C++, to avoid hard-to-catch issues.
+     *     super[destruct]();
+     *   }
+     * }
+     * ```
+     */
+    protected [destruct](): void {
+      this.logger.trace(message.getCheckpoint("destruct", "Monitorable"));
+      if (!this[_destructing]) {
+        this.logger.error(
+          message.getError(ErrorCode.DESTRUCT_CALL, ErrorDescription.DESTRUCT_CALL),
+        );
+        throw new Error(ErrorDescription.DESTRUCT_CALL);
+      } else {
+        // delete object from the internal undestructed map
+        undestructed.delete(this.uid);
+        this.logger.debug(
+          message.getCalled(
+            "undestructed",
+            "Map",
+            "delete",
+            [this.uid],
+            true,
+          ),
+        );
+        this[_destructing] = false;
+        this.logger.debug(
+          message.getChanged(
+            "Destructible",
+            "_destructing",
+            this[_destructing],
+          ),
+        );
+        this[_destructed] = new Date();
+        this.logger.debug(
+          message.getChanged(
+            "Destructible",
+            "_destructed",
+            this[_destructed],
           ),
         );
       }
@@ -199,6 +319,47 @@ export namespace log {
         this.logger.info(message.getConstructed());
         thread.stop();
       }
+    }
+
+    /**
+     * Destruct the `mdln`-object. If the object hasn't already been destructed, calls
+     * symbolic {@link [destruct] | `[destruct]`} method to start the
+     * `destruct thread`. Logs new warning if object has already been destructed.
+     */
+    public destruct(): void {
+      thread.start();
+      if (this.destructed) {
+        this.logger.warn(`{${this.uid}} is alredy destructed`);
+      } else {
+        // enable destruct thread
+        this[_destructing] = true;
+        this.logger.debug(
+          message.getChanged(
+            "Destructible",
+            "_destructing",
+            this[_destructing],
+          ),
+        );
+
+        // safe run [destruct] hierarchy
+        try {
+          this[destruct]();
+        } finally {
+          thread.stop();
+        }
+
+        // assert destruct result
+        if (!this[_destructed] || this[_destructing]) {
+          // TODO (buntarb): cleaning up/restore state here?
+          this.logger.error(
+            message.getError(ErrorCode.DESTRUCT_IMPL, ErrorDescription.DESTRUCT_IMPL),
+          );
+          thread.stop();
+          throw new Error(ErrorDescription.DESTRUCT_IMPL);
+        }
+        this.logger.info(message.getDestructed());
+      }
+      thread.stop();
     }
   }
 }
