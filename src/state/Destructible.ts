@@ -41,12 +41,12 @@ export namespace state {
     /**
      * Symbolic field for the `_destructing` boolean state.
      */
-    private [_destructing] = false;
+    private [_destructing]: boolean;
 
     /**
      * Symbolic field for the `_destructed` property.
      */
-    private [_destructed]: boolean | Date = false;
+    private [_destructed]: boolean | Date;
 
     /**
      * Timestamp of the object destruction moment or false, if object is not
@@ -61,6 +61,7 @@ export namespace state {
      */
     protected [construct](): void {
       super[construct]();
+      this[_destructed] = false;
       this.logger.trace(log.message.getCheckpoint("construct", "Destructible"));
       this.logger.debug(
         log.message.getChanged(
@@ -69,6 +70,7 @@ export namespace state {
           this[_destructed],
         ),
       );
+      this[_destructing] = false;
       this.logger.debug(
         log.message.getChanged(
           "Destructible",

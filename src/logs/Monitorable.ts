@@ -169,38 +169,36 @@ export namespace log {
       try {
         this[construct]();
       } finally {
-        thread.stop();
-      }
-
-      if (!this[_constructing]) {
-        this.logger.error(
-          message.getError(ErrorCode.CONSTRUCT_IMPL, ErrorDescription.CONSTRUCT_IMPL),
+        if (!this[_constructing]) {
+          this.logger.error(
+            message.getError(ErrorCode.CONSTRUCT_IMPL, ErrorDescription.CONSTRUCT_IMPL),
+          );
+          thread.stop();
+          throw new Error(ErrorDescription.CONSTRUCT_IMPL);
+        }
+  
+        // disable construct thread
+        this[_constructing] = false;
+        this.logger.debug(
+          message.getChanged(
+            "Monitorable",
+            "_constructing",
+            this[_constructing],
+          ),
         );
+  
+        // mark object as constructed
+        this[_constructed] = true;
+        this.logger.debug(
+          message.getChanged(
+            "Monitorable",
+            "_constructed",
+            this[_constructed],
+          ),
+        );
+        this.logger.info(message.getConstructed());
         thread.stop();
-        throw new Error(ErrorDescription.CONSTRUCT_IMPL);
       }
-
-      // disable construct thread
-      this[_constructing] = false;
-      this.logger.debug(
-        message.getChanged(
-          "Monitorable",
-          "_constructing",
-          this[_constructing],
-        ),
-      );
-
-      // mark object as constructed
-      this[_constructed] = true;
-      this.logger.debug(
-        message.getChanged(
-          "Monitorable",
-          "_constructed",
-          this[_constructed],
-        ),
-      );
-      this.logger.info(message.getConstructed());
-      thread.stop();
     }
   }
 }
