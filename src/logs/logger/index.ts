@@ -12,7 +12,7 @@ export namespace logger {
   /**
    * Global logger constructor.
    */
-  let _constructor: typeof Logger = Logger;
+  let _constructor: typeof Logger = l.Logger;
 
   export import Logger = l.Logger;
 

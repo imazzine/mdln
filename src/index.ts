@@ -7,21 +7,19 @@
  * [[include:README.md]]
  */
 
-import Monitorable from "./types/public/Monitorable";
-import Destructible from "./types/public/Destructible";
-import Listenable from "./types/public/Listenable";
-import Node from "./types/public/Node";
-
-import { logs } from "./logs";
 import { errors } from "./errors";
-import { events } from "./events";
-import { symbols } from "./symbols";
-
+import { state } from "./state";
+import { logs, logNS } from "./logs";
+import { events, eventsNS } from "./events";
+import { nodes } from "./nodes";
+import Monitorable = logNS.Monitorable;
+import Listenable = eventsNS.Listenable;
+import Destructible = state.Destructible;
+import Node = nodes.Node;
 export {
-  logs,
   errors,
   events,
-  symbols,
+  logs,
   Monitorable,
   Destructible,
   Listenable,

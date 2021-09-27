@@ -5,22 +5,21 @@
  * @license Apache-2.0
  */
 
-import { logs } from "../logs";
-import EventBinder from "../types/internal/EventBinder";
-import Listenable from "../types/public/Listenable";
-
-import { events as evt } from "./EventPhase";
-
-import EventPhase = evt.EventPhase;
-import getStack = logs.getStack;
- 
-const _type = Symbol("_type");
-const _binder = Symbol("_binder");
-const _stack = Symbol("_stack");
-const _created = Symbol("_created");
-const _scope = Symbol("_scope");
-
+import { logNS as log } from "../logs";
+import { events as ns0 } from "./EventBinder";
+import { events as ns1 } from "./EventPhase";
+import { events as ns2 } from "./Listenable";
 export namespace events {
+  import EventBinder = ns0.EventBinder;
+  import EventPhase = ns1.EventPhase;
+  import Listenable = ns2.Listenable;
+  import getStack = log.getStack;
+  const _type = Symbol("_type");
+  const _binder = Symbol("_binder");
+  const _stack = Symbol("_stack");
+  const _created = Symbol("_created");
+  const _scope = Symbol("_scope");
+
   /**
    * A class for an event objects.
    *
@@ -137,7 +136,7 @@ export namespace events {
       if (!this[_binder].passive) {
         this[_binder].stopped = new Date();
         this.source.logger.debug(
-          logs.message.getCalled(`binder`, "EventBinder", "stopped", [
+          log.message.getCalled(`binder`, "EventBinder", "stopped", [
             (this[_binder].stopped as Date).toUTCString(),
           ]),
         );
@@ -153,7 +152,7 @@ export namespace events {
       if (!this[_binder].passive) {
         this[_binder].prevented = new Date();
         this.source.logger.debug(
-          logs.message.getCalled(`binder`, "EventBinder", "prevented", [
+          log.message.getCalled(`binder`, "EventBinder", "prevented", [
             (this[_binder].prevented as Date).toUTCString(),
           ]),
         );

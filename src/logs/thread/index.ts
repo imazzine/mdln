@@ -1,5 +1,5 @@
 /**
- * @fileoverview Declaration of the logs thread logic.
+ * @fileoverview Declaration of the log thread logic.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0

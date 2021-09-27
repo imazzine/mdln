@@ -1,5 +1,5 @@
 /**
- * @fileoverview Declaration of the logs level logic.
+ * @fileoverview Declaration of the log level logic.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
@@ -10,7 +10,7 @@ export namespace level {
   /**
    * Global log level.
    */
-  let _level: Level = Level.TRACE;
+  let _level: Level = lvl.Level.TRACE;
 
   export import Level = lvl.Level;
 
