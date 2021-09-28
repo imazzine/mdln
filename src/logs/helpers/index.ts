@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * @fileoverview Declaration of the helpers namespace.
  * @author Artem Lytvynov
@@ -16,4 +18,4 @@ export namespace helpers {
   export import parseMsg = ns0.parseMsg;
   export import getUid = ns1.getUid;
   export import getStack = ns2.getStack;
-};
+}

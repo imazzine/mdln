@@ -12,6 +12,7 @@ import { events as ns0 } from "./Event";
 import { events as ns1 } from "./EventPhase";
 import { events as ns2 } from "./EventListener";
 import { events as ns3 } from "./EventBinder";
+
 export namespace events {
   import ErrorCode = errors.ErrorCode;
   import ErrorDescription = errors.ErrorDescription;
@@ -27,12 +28,15 @@ export namespace events {
   /**
    * Map of the listenable object listeners maps.
    */
-  export const listeners: Map<Listenable, Map<string, Array<EventListener>>> = new Map();
+  export const listeners: Map<
+    Listenable,
+    Map<string, Array<EventListener>>
+  > = new Map();
 
   /**
    * Returns listeners map for a given mdln-object.
    */
-  function getListenersMaps(
+  export function getListenersMaps(
     node: Listenable,
   ): Map<string, Array<EventListener>> {
     const maps = listeners.get(node);
@@ -52,10 +56,13 @@ export namespace events {
   /**
    * Map of the nodes indexes.
    */
-  export const nodes: Map<Listenable, {
-    parent?: Listenable,
-    children: Array<Listenable>
-  }> = new Map();
+  export const nodes: Map<
+    Listenable,
+    {
+      parent?: Listenable;
+      children: Array<Listenable>;
+    }
+  > = new Map();
 
   /**
    * Returns ancestors for a given mdln-object.
@@ -87,7 +94,7 @@ export namespace events {
   /**
    * Execute appropriate listeners on `event.current` listenable object.
    */
-  function fireListeners(
+  export function fireListeners(
     binder: EventBinder,
     event: Event,
     capture: boolean,
@@ -152,7 +159,7 @@ export namespace events {
    * function will return false. If one of the capture listeners calls
    * event.stop(), then the bubble listeners won't fire.
    */
-  function dispatchEvent(
+  export function dispatchEvent(
     node: Listenable,
     type: string,
     scope?: unknown,
@@ -184,7 +191,9 @@ export namespace events {
     for (let i = ancestors.length - 1; i >= 0; i--) {
       binder.phase = EventPhase.CAPTURING_PHASE;
       node.logger.debug(
-        logNS.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
+        logNS.message.getCalled(`binder`, "EventBinder", "phase", [
+          binder.phase,
+        ]),
       );
       binder.handler = ancestors[i];
       node.logger.debug(
@@ -199,7 +208,9 @@ export namespace events {
     if (!binder.stopped) {
       binder.phase = EventPhase.AT_TARGET;
       node.logger.debug(
-        logNS.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
+        logNS.message.getCalled(`binder`, "EventBinder", "phase", [
+          binder.phase,
+        ]),
       );
       binder.handler = node;
       node.logger.debug(
@@ -241,6 +252,7 @@ export namespace events {
     );
     return !binder.stopped;
   }
+
   /**
    * Class that provides communication layer for the `mdln`-objects. It responds
    * for the object's `listen tread`, `unlisten tread` and the `dispatch thread`.
@@ -519,7 +531,9 @@ export namespace events {
       }
 
       // get listeners array for the given event type
-      const eventListeners = listenersMap.get(eventType) as Array<EventListener>;
+      const eventListeners = listenersMap.get(
+        eventType,
+      ) as Array<EventListener>;
       if (eventListeners) {
         // find and remove (if exists and not removed) a listener equivalent to
         // the specified in arguments

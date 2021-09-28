@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * @fileoverview Declaration of the getUid function.
  * @author Artem Lytvynov
@@ -10,7 +12,7 @@ export namespace helpers {
   const ns = "00000000-0000-0000-0000-000000000000";
   const stringsMap: Map<string, string> = new Map();
   const callbacksMap: Map<(event: Event) => void, string> = new Map();
-  
+
   /**
    * Returns random session unique UUID-like string if `value` is not specified.
    * If string or function will be provided as a `value` returns calculated UUID

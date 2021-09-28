@@ -5,7 +5,7 @@
  * @license Apache-2.0
  */
 
-import { errors } from "../errors"
+import { errors } from "../errors";
 import { symbolsNS } from "../symbols";
 import { helpers } from "./helpers";
 import { logger } from "./logger";
@@ -78,7 +78,9 @@ export namespace log {
     /**
      * Symbolic field for the object's associated `_logger`.
      */
-    private [_logger]: logger.Logger = new (logger.getConstructor())(this[_uid]);
+    private [_logger]: logger.Logger = new (logger.getConstructor())(
+      this[_uid],
+    );
 
     /**
      * Object unique UUID-like identifier.
@@ -140,7 +142,10 @@ export namespace log {
       this.logger.trace(message.getCheckpoint("construct", "Monitorable"));
       if (this[_constructed]) {
         this.logger.error(
-          message.getError(ErrorCode.CONSTRUCT_CALL, ErrorDescription.CONSTRUCT_CALL),
+          message.getError(
+            ErrorCode.CONSTRUCT_CALL,
+            ErrorDescription.CONSTRUCT_CALL,
+          ),
         );
         throw new Error(ErrorDescription.CONSTRUCT_CALL);
       } else {
@@ -162,7 +167,7 @@ export namespace log {
           message.getChanged(
             "Monitorable",
             "_logger",
-            logger.isUpdated()  ? "updated" : "default",
+            logger.isUpdated() ? "updated" : "default",
           ),
         );
         this[_constructing] = true;
@@ -175,27 +180,15 @@ export namespace log {
         );
         this[_constructed] = false;
         this.logger.debug(
-          message.getChanged(
-            "Monitorable",
-            "_constructed",
-            this[_constructed],
-          ),
+          message.getChanged("Monitorable", "_constructed", this[_constructed]),
         );
         this[_destructing] = false;
         this.logger.debug(
-          message.getChanged(
-            "Monitorable",
-            "_destructing",
-            this[_destructing],
-          ),
+          message.getChanged("Monitorable", "_destructing", this[_destructing]),
         );
         this[_destructed] = false;
         this.logger.debug(
-          message.getChanged(
-            "Monitorable",
-            "_destructed",
-            this[_destructed],
-          ),
+          message.getChanged("Monitorable", "_destructed", this[_destructed]),
         );
         // add object to the undestructed map
         undestructed.set(this.uid, this);
@@ -238,20 +231,17 @@ export namespace log {
       this.logger.trace(message.getCheckpoint("destruct", "Monitorable"));
       if (!this[_destructing]) {
         this.logger.error(
-          message.getError(ErrorCode.DESTRUCT_CALL, ErrorDescription.DESTRUCT_CALL),
+          message.getError(
+            ErrorCode.DESTRUCT_CALL,
+            ErrorDescription.DESTRUCT_CALL,
+          ),
         );
         throw new Error(ErrorDescription.DESTRUCT_CALL);
       } else {
         // delete object from the internal undestructed map
         undestructed.delete(this.uid);
         this.logger.debug(
-          message.getCalled(
-            "undestructed",
-            "Map",
-            "delete",
-            [this.uid],
-            true,
-          ),
+          message.getCalled("undestructed", "Map", "delete", [this.uid], true),
         );
         this[_destructing] = false;
         this.logger.debug(
@@ -263,11 +253,7 @@ export namespace log {
         );
         this[_destructed] = new Date();
         this.logger.debug(
-          message.getChanged(
-            "Destructible",
-            "_destructed",
-            this[_destructed],
-          ),
+          message.getChanged("Destructible", "_destructed", this[_destructed]),
         );
       }
     }
@@ -291,12 +277,16 @@ export namespace log {
       } finally {
         if (!this[_constructing]) {
           this.logger.error(
-            message.getError(ErrorCode.CONSTRUCT_IMPL, ErrorDescription.CONSTRUCT_IMPL),
+            message.getError(
+              ErrorCode.CONSTRUCT_IMPL,
+              ErrorDescription.CONSTRUCT_IMPL,
+            ),
           );
           thread.stop();
+          // eslint-disable-next-line no-unsafe-finally
           throw new Error(ErrorDescription.CONSTRUCT_IMPL);
         }
-  
+
         // disable construct thread
         this[_constructing] = false;
         this.logger.debug(
@@ -306,15 +296,11 @@ export namespace log {
             this[_constructing],
           ),
         );
-  
+
         // mark object as constructed
         this[_constructed] = true;
         this.logger.debug(
-          message.getChanged(
-            "Monitorable",
-            "_constructed",
-            this[_constructed],
-          ),
+          message.getChanged("Monitorable", "_constructed", this[_constructed]),
         );
         this.logger.info(message.getConstructed());
         thread.stop();
@@ -326,7 +312,7 @@ export namespace log {
      * symbolic {@link [destruct] | `[destruct]`} method to start the
      * `destruct thread`. Logs new warning if object has already been destructed.
      */
-    public destruct(): void {
+    public destructor(): void {
       thread.start();
       if (this.destructed) {
         this.logger.warn(`{${this.uid}} is alredy destructed`);
@@ -352,7 +338,10 @@ export namespace log {
         if (!this[_destructed] || this[_destructing]) {
           // TODO (buntarb): cleaning up/restore state here?
           this.logger.error(
-            message.getError(ErrorCode.DESTRUCT_IMPL, ErrorDescription.DESTRUCT_IMPL),
+            message.getError(
+              ErrorCode.DESTRUCT_IMPL,
+              ErrorDescription.DESTRUCT_IMPL,
+            ),
           );
           thread.stop();
           throw new Error(ErrorDescription.DESTRUCT_IMPL);

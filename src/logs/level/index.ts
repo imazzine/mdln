@@ -21,14 +21,14 @@ export namespace level {
    *
    * @param level Logging level.
    */
-  export function set(level: Level) {
+  export function set(level: Level): void {
     _level = level;
   }
 
   /**
    * Returns global logging level.
    */
-  export function get() {
+  export function get(): Level {
     return _level;
   }
-};
+}

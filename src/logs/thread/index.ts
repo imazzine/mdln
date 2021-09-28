@@ -29,5 +29,5 @@ export namespace thread {
    */
   export const uid = (): null | string => {
     return thread;
-  }
-};
+  };
+}

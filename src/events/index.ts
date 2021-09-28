@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * @fileoverview Declaration of the events namespace.
  * @author Artem Lytvynov
@@ -13,6 +15,7 @@ import { events as ns3 } from "./Listenable";
  * Namespace that provides events related types.
  */
 export namespace events {
+  export import Listenable = ns3.Listenable;
   export import Event = ns0.Event;
   export import EventPhase = ns1.EventPhase;
 }

@@ -59,36 +59,36 @@ export namespace message {
       | ErrorLog;
 
     /**
-    * Log instantiation timestamp.
-    */
+     * Log instantiation timestamp.
+     */
     public get timestamp(): Date {
       return this[_timestamp];
     }
 
     /**
-    * Log thread UUID or `null` if logger our of the thread.
-    */
+     * Log thread UUID or `null` if logger our of the thread.
+     */
     public get thread(): null | string {
       return this[_thread];
     }
 
     /**
-    * Log level.
-    */
+     * Log level.
+     */
     public get level(): Level {
       return this[_level];
     }
 
     /**
-    * Log type.
-    */
+     * Log type.
+     */
     public get type(): Type {
       return this[_type];
     }
 
     /**
-    * Log
-    */
+     * Log
+     */
     public get message():
       | boolean
       | number
@@ -106,10 +106,10 @@ export namespace message {
     }
 
     /**
-    * @param type Log type.
-    * @param level Log level.
-    * @param message Log
-    */
+     * @param type Log type.
+     * @param level Log level.
+     * @param message Log
+     */
     public constructor(
       thread: null | string,
       type: Type,

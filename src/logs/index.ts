@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * @fileoverview Declaration of the log namespace.
  * @author Artem Lytvynov
@@ -30,6 +32,7 @@ export namespace logNS {
  * Public logs namespace.
  */
 export namespace logs {
+  export import Monitorable = l.Monitorable;
   export import getStack = helpers.getStack;
   export import getUid = helpers.getUid;
   export import setLevel = lvl.set;

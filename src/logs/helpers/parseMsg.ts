@@ -42,4 +42,4 @@ export namespace helpers {
         }
     }
   }
-};
+}

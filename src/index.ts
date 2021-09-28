@@ -15,12 +15,4 @@ import { symbols } from "./symbols";
 import Monitorable = logNS.Monitorable;
 import Listenable = eventsNS.Listenable;
 import Node = tree.Node;
-export {
-  errors,
-  events,
-  logs,
-  symbols,
-  Monitorable,
-  Listenable,
-  Node,
-};
+export { errors, events, logs, symbols, tree, Monitorable, Listenable, Node };

@@ -9,5 +9,5 @@ export namespace message {
   /**
    * Monitorable object constructed log message type.
    */
-  export class Constructed {};
-};
+  export class Constructed {}
+}

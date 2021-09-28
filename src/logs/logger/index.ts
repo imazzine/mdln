@@ -19,7 +19,7 @@ export namespace logger {
   /**
    * Configures logger constructor in the runtime.
    */
-  export function setConstructor(constructor: typeof Logger) {
+  export function setConstructor(constructor: typeof Logger): void {
     if (!updated) {
       _constructor = constructor;
       updated = true;
@@ -29,14 +29,14 @@ export namespace logger {
   /**
    * Returns logger constructor.
    */
-  export function getConstructor() {
+  export function getConstructor(): typeof Logger {
     return _constructor;
   }
 
   /**
    * Whether constructor was updated or not.
    */
-  export function isUpdated() {
+  export function isUpdated(): boolean {
     return updated;
   }
-};
+}

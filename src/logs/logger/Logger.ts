@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+
 /**
  * @fileoverview Declaration of the Logger class.
  * @author Artem Lytvynov
@@ -143,11 +146,7 @@ export namespace logger {
     public trace(message: any): boolean {
       if (message instanceof Checkpoint) {
         return this[log](
-          new Log(
-            thread.uid(),
-            Type.checkpoint,
-            Level.TRACE,
-            message)
+          new Log(thread.uid(), Type.checkpoint, Level.TRACE, message),
         );
       } else {
         const msg = helpers.parseMsg(message);
@@ -209,7 +208,9 @@ export namespace logger {
         );
       }
       if (message instanceof Removed) {
-        return this[log](new Log(thread.uid(), Type.removed, Level.INFO, message));
+        return this[log](
+          new Log(thread.uid(), Type.removed, Level.INFO, message),
+        );
       } else {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
@@ -239,7 +240,9 @@ export namespace logger {
      */
     public error(message: any): boolean {
       if (message instanceof ErrorLog) {
-        return this[log](new Log(thread.uid(), Type.error, Level.ERROR, message));
+        return this[log](
+          new Log(thread.uid(), Type.error, Level.ERROR, message),
+        );
       } else {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
@@ -256,7 +259,9 @@ export namespace logger {
      */
     public fatal(message: any): boolean {
       if (message instanceof ErrorLog) {
-        return this[log](new Log(thread.uid(), Type.error, Level.FATAL, message));
+        return this[log](
+          new Log(thread.uid(), Type.error, Level.FATAL, message),
+        );
       } else {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;

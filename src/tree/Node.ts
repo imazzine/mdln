@@ -5,9 +5,9 @@
  * @license Apache-2.0
  */
 
-import { errors } from "../errors"
+import { errors } from "../errors";
 import { symbolsNS } from "../symbols";
-import { eventsNS } from "../events"
+import { eventsNS } from "../events";
 import { logNS } from "../logs";
 export namespace tree {
   import ErrorCode = errors.ErrorCode;
@@ -20,7 +20,10 @@ export namespace tree {
   /**
    * Returns node's index object.
    */
-  function getIndexObject(node: Node): {parent?: Node, children: Array<Node>} {
+  export function getIndexObject(node: Node): {
+    parent?: Node;
+    children: Array<Node>;
+  } {
     const index = nodes.get(node);
     if (!index) {
       node.logger.error(
@@ -31,14 +34,14 @@ export namespace tree {
       );
       throw new Error(ErrorDescription.NODE_INDEX_MISSED);
     } else {
-      return index as {parent?: Node, children: Array<Node>};
+      return index as { parent?: Node; children: Array<Node> };
     }
   }
 
   /**
    * Assert node's child node.
    */
-  function assertChild(parent: Node, child: Node): void {
+  export function assertChild(parent: Node, child: Node): void {
     getIndexObject(child);
     const pIndex = getIndexObject(parent);
     const i = pIndex.children.indexOf(child);
@@ -186,7 +189,7 @@ export namespace tree {
       // get current node index object
       const curIndex = getIndexObject(this);
       for (let i = 0; i < curIndex.children.length; i++) {
-        curIndex.children[i].destruct();
+        curIndex.children[i].destructor();
       }
 
       // remove current node from the parent if specified
@@ -207,9 +210,13 @@ export namespace tree {
       // remove current node index from the internal state
       nodes.delete(this);
       this.logger.debug(
-        logNS.message.getCalled("nodes", "Map", "delete", [
-          `{${this.uid}}`,
-        ], true),
+        logNS.message.getCalled(
+          "nodes",
+          "Map",
+          "delete",
+          [`{${this.uid}}`],
+          true,
+        ),
       );
       super[destruct]();
     }

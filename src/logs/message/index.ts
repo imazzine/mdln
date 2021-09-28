@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * @fileoverview Declaration of the msg namespace.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
  */
-
 
 import { helpers } from "../helpers";
 import { message as ns0 } from "./Type";
@@ -56,7 +57,7 @@ export namespace message {
   export const getChanged = (
     level: string,
     field: string,
-    value: any,
+    value: unknown,
   ): Changed => {
     const msg = helpers.parseMsg(value);
     const key = Object.keys(msg)[0] as Type;
@@ -76,10 +77,7 @@ export namespace message {
    * @param child Inserted node.
    * @param before Before reference node.
    */
-  export const getInserted = (
-    child: string,
-    before?: string,
-  ): Inserted => {
+  export const getInserted = (child: string, before?: string): Inserted => {
     return new Inserted(child, before);
   };
 
@@ -113,7 +111,7 @@ export namespace message {
     name: string,
     type: string,
     method: string,
-    args: Array<any>,
+    args: Array<unknown>,
     global = false,
   ): Called => {
     const res: Array<boolean | number | string> = [];
