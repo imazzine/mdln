@@ -9,18 +9,15 @@ import { errors } from "../errors";
 import { symbolsNS } from "../symbols";
 import { logNS } from "../logs";
 import { events as ns0 } from "./Event";
-import { events as ns1 } from "./EventPhase";
-import { events as ns2 } from "./EventListener";
-import { events as ns3 } from "./EventBinder";
-
+import { events as ns1 } from "./Phase";
+import { events as ns2 } from "./Listener";
+import { events as ns3 } from "./Binder";
 export namespace events {
-  import ErrorCode = errors.ErrorCode;
-  import ErrorDescription = errors.ErrorDescription;
   import Monitorable = logNS.Monitorable;
   import Event = ns0.Event;
-  import EventPhase = ns1.EventPhase;
-  import EventListener = ns2.EventListener;
-  import EventBinder = ns3.EventBinder;
+  import Phase = ns1.Phase;
+  import Listener = ns2.Listener;
+  import Binder = ns3.Binder;
   import construct = symbolsNS.construct;
   import destruct = symbolsNS.destruct;
   import getUid = logNS.getUid;
@@ -30,7 +27,7 @@ export namespace events {
    */
   export const listeners: Map<
     Listenable,
-    Map<string, Array<EventListener>>
+    Map<string, Array<Listener>>
   > = new Map();
 
   /**
@@ -38,16 +35,19 @@ export namespace events {
    */
   export function getListenersMaps(
     node: Listenable,
-  ): Map<string, Array<EventListener>> {
+  ): Map<string, Array<Listener>> {
     const maps = listeners.get(node);
     if (!maps) {
       node.logger.error(
         logNS.message.getError(
-          ErrorCode.LISTENERS_MAP_MISSED,
-          ErrorDescription.LISTENERS_MAP_MISSED,
+          errors.Code.LISTENERS_MAP_MISSED,
+          errors.Description.LISTENERS_MAP_MISSED,
         ),
       );
-      throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
+      throw new errors.Error(
+        errors.Code.LISTENERS_MAP_MISSED,
+        errors.Description.LISTENERS_MAP_MISSED,
+      );
     } else {
       return maps;
     }
@@ -78,11 +78,14 @@ export namespace events {
         if (!index) {
           node.logger.error(
             logNS.message.getError(
-              ErrorCode.NODE_INDEX_MISSED,
-              ErrorDescription.NODE_INDEX_MISSED,
+              errors.Code.NODE_INDEX_MISSED,
+              errors.Description.NODE_INDEX_MISSED,
             ),
           );
-          throw new Error(ErrorDescription.NODE_INDEX_MISSED);
+          throw new errors.Error(
+            errors.Code.NODE_INDEX_MISSED,
+            errors.Description.NODE_INDEX_MISSED,
+          );
         } else {
           ancestor = index.parent;
         }
@@ -92,17 +95,17 @@ export namespace events {
   }
 
   /**
-   * Execute appropriate listeners on `event.current` listenable object.
+   * Execute appropriate listeners on `event.handler` listenable object.
    */
   export function fireListeners(
-    binder: EventBinder,
+    binder: Binder,
     event: Event,
     capture: boolean,
   ): void {
     const listenable = event.handler;
     const listeners = getListenersMaps(listenable).get(event.type);
     if (listeners) {
-      let listener: EventListener;
+      let listener: Listener;
       for (let i = 0; i < listeners.length; i++) {
         listener = listeners[i];
         if (
@@ -114,7 +117,7 @@ export namespace events {
           if (binder.passive !== listener.passive) {
             binder.passive = listener.passive;
             event.source.logger.debug(
-              logNS.message.getCalled(`binder`, "EventBinder", "passive", [
+              logNS.message.getCalled(`binder`, "Binder", "passive", [
                 binder.passive,
               ]),
             );
@@ -165,10 +168,10 @@ export namespace events {
     scope?: unknown,
   ): boolean {
     // construct an event binder
-    const binder = new EventBinder(EventPhase.NONE, node, node);
+    const binder = new Binder(Phase.NONE, node, node);
     node.logger.debug(
-      logNS.message.getCalled(`binder`, "EventBinder", "constructor", [
-        EventPhase.NONE,
+      logNS.message.getCalled(`binder`, "Binder", "constructor", [
+        Phase.NONE,
         `{${node.uid}}`,
         `{${node.uid}}`,
       ]),
@@ -189,15 +192,13 @@ export namespace events {
 
     // run capturing phase cycle
     for (let i = ancestors.length - 1; i >= 0; i--) {
-      binder.phase = EventPhase.CAPTURING_PHASE;
+      binder.phase = Phase.CAPTURING_PHASE;
       node.logger.debug(
-        logNS.message.getCalled(`binder`, "EventBinder", "phase", [
-          binder.phase,
-        ]),
+        logNS.message.getCalled(`binder`, "Binder", "phase", [binder.phase]),
       );
       binder.handler = ancestors[i];
       node.logger.debug(
-        logNS.message.getCalled(`binder`, "EventBinder", "handler", [
+        logNS.message.getCalled(`binder`, "Binder", "handler", [
           `{${binder.handler.uid}}`,
         ]),
       );
@@ -206,15 +207,13 @@ export namespace events {
 
     // run capturing at target if event wasn't stoped
     if (!binder.stopped) {
-      binder.phase = EventPhase.AT_TARGET;
+      binder.phase = Phase.AT_TARGET;
       node.logger.debug(
-        logNS.message.getCalled(`binder`, "EventBinder", "phase", [
-          binder.phase,
-        ]),
+        logNS.message.getCalled(`binder`, "Binder", "phase", [binder.phase]),
       );
       binder.handler = node;
       node.logger.debug(
-        logNS.message.getCalled(`binder`, "EventBinder", "current", [
+        logNS.message.getCalled(`binder`, "Binder", "handler", [
           `{${binder.handler.uid}}`,
         ]),
       );
@@ -229,15 +228,13 @@ export namespace events {
     // run bubbling phase cycle if event wasn't stoped
     if (!binder.stopped) {
       for (let i = 0; !binder.stopped && i < ancestors.length; i++) {
-        binder.phase = EventPhase.BUBBLING_PHASE;
+        binder.phase = Phase.BUBBLING_PHASE;
         node.logger.debug(
-          logNS.message.getCalled(`binder`, "EventBinder", "phase", [
-            binder.phase,
-          ]),
+          logNS.message.getCalled(`binder`, "Binder", "phase", [binder.phase]),
         );
         binder.handler = ancestors[i];
         node.logger.debug(
-          logNS.message.getCalled(`binder`, "EventBinder", "current", [
+          logNS.message.getCalled(`binder`, "Binder", "handler", [
             `{${binder.handler.uid}}`,
           ]),
         );
@@ -246,9 +243,9 @@ export namespace events {
     }
 
     // unset event phase
-    binder.phase = EventPhase.NONE;
+    binder.phase = Phase.NONE;
     node.logger.debug(
-      logNS.message.getCalled(`binder`, "EventBinder", "phase", [binder.phase]),
+      logNS.message.getCalled(`binder`, "Binder", "phase", [binder.phase]),
     );
     return !binder.stopped;
   }
@@ -371,18 +368,21 @@ export namespace events {
         // TODO (buntarb): cleaning up logic here?
         this.logger.error(
           logNS.message.getError(
-            ErrorCode.LISTENERS_MAP_MISSED,
-            ErrorDescription.LISTENERS_MAP_MISSED,
+            errors.Code.LISTENERS_MAP_MISSED,
+            errors.Description.LISTENERS_MAP_MISSED,
           ),
         );
         logNS.thread.stop();
-        throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
+        throw new errors.Error(
+          errors.Code.LISTENERS_MAP_MISSED,
+          errors.Description.LISTENERS_MAP_MISSED,
+        );
       }
 
       // initialise listener variable, get listeners array for the given event
       // type
       let listener = null;
-      let eventListeners = listenersMap.get(eventType) as Array<EventListener>;
+      let eventListeners = listenersMap.get(eventType) as Array<Listener>;
 
       // construct and add listeners array if not exists
       if (!eventListeners) {
@@ -419,7 +419,7 @@ export namespace events {
               `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                 opts.capture ? "capture" : "bubble"
               }]`,
-              "EventListener",
+              "Listener",
               "passive",
               [listener.passive],
             ),
@@ -430,7 +430,7 @@ export namespace events {
               `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                 opts.capture ? "capture" : "bubble"
               }]`,
-              "EventListener",
+              "Listener",
               "once",
               [listener.once],
             ),
@@ -440,7 +440,7 @@ export namespace events {
 
       // construct new listener and add it to the listeners array
       if (!listener) {
-        listener = new EventListener(
+        listener = new Listener(
           callback,
           opts.capture,
           opts.passive,
@@ -452,7 +452,7 @@ export namespace events {
             `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
               opts.capture ? "capture" : "bubble"
             }]`,
-            "EventListener",
+            "Listener",
             "constructor",
             [
               listener.callback.toString(),
@@ -522,18 +522,19 @@ export namespace events {
       if (typeof listenersMap === "undefined") {
         this.logger.error(
           logNS.message.getError(
-            ErrorCode.LISTENERS_MAP_MISSED,
-            ErrorDescription.LISTENERS_MAP_MISSED,
+            errors.Code.LISTENERS_MAP_MISSED,
+            errors.Description.LISTENERS_MAP_MISSED,
           ),
         );
         logNS.thread.stop();
-        throw new Error(ErrorDescription.LISTENERS_MAP_MISSED);
+        throw new errors.Error(
+          errors.Code.LISTENERS_MAP_MISSED,
+          errors.Description.LISTENERS_MAP_MISSED,
+        );
       }
 
       // get listeners array for the given event type
-      const eventListeners = listenersMap.get(
-        eventType,
-      ) as Array<EventListener>;
+      const eventListeners = listenersMap.get(eventType) as Array<Listener>;
       if (eventListeners) {
         // find and remove (if exists and not removed) a listener equivalent to
         // the specified in arguments
@@ -549,7 +550,7 @@ export namespace events {
                 `listener[${this.uid}, ${eventType}, ${getUid(callback)}, ${
                   opts.capture ? "capture" : "bubble"
                 }]`,
-                "EventListener",
+                "Listener",
                 "removed",
                 [eventListeners[i].removed],
               ),

@@ -32,11 +32,29 @@ export namespace logNS {
  * Public logs namespace.
  */
 export namespace logs {
-  export import Monitorable = l.Monitorable;
-  export import getStack = helpers.getStack;
-  export import getUid = helpers.getUid;
-  export import setLevel = lvl.set;
-  export import setLogger = lgr.setConstructor;
+  export import Log = lgr.Log;
+  export import Type = msg.Type;
   export import Level = lvl.Level;
   export import Logger = lgr.Logger;
+  export import Buffer = lgr.Buffer;
+  export import Monitorable = l.Monitorable;
+  export import setLevel = lvl.set;
+  export import getUid = helpers.getUid;
+  export import getStack = helpers.getStack;
+  export import setBuffer = lgr.setBuffer;
+
+  export import getCheckpoint = msg.getCheckpoint;
+  export import getChanged = msg.getChanged;
+  export import getCalled = msg.getCalled;
+  export import getError = msg.getError;
+
+  // /**
+  //  * Namespace for {@link Log.message | Log#message} public types getters.
+  //  */
+  // export const message = {
+  //   getCheckpoint: msg.getCheckpoint,
+  //   getChanged: msg.getChanged,
+  //   getCalled: msg.getCalled,
+  //   getError: msg.getError,
+  // };
 }

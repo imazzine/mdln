@@ -6,12 +6,12 @@
  */
 
 import { logNS as log } from "../logs";
-import { events as ns0 } from "./EventBinder";
-import { events as ns1 } from "./EventPhase";
+import { events as ns0 } from "./Binder";
+import { events as ns1 } from "./Phase";
 import { events as ns2 } from "./Listenable";
 export namespace events {
-  import EventBinder = ns0.EventBinder;
-  import EventPhase = ns1.EventPhase;
+  import Binder = ns0.Binder;
+  import Phase = ns1.Phase;
   import Listenable = ns2.Listenable;
   import getStack = log.getStack;
   const _type = Symbol("_type");
@@ -23,7 +23,7 @@ export namespace events {
   /**
    * A class for an event objects.
    *
-   * Events expect internal `EventBinder` object to be passed to the constructor
+   * Events expect internal `Binder` object to be passed to the constructor
    * function. You should not try to instantiate this object manually. Use
    * {@link Listenable.dispatch | `Listenable#dispatch`} to dispatch an event.
    */
@@ -36,7 +36,7 @@ export namespace events {
     /**
      * Symbolic field for the event binder.
      */
-    private [_binder]: EventBinder;
+    private [_binder]: Binder;
 
     /**
      * Symbolic field for the event stack.
@@ -91,7 +91,7 @@ export namespace events {
     /**
      * Event processing phase.
      */
-    get phase(): EventPhase {
+    get phase(): Phase {
       return this[_binder].phase;
     }
 
@@ -121,7 +121,7 @@ export namespace events {
     /**
      * Class constructor.
      */
-    constructor(type: string, binder: EventBinder, scope?: unknown) {
+    constructor(type: string, binder: Binder, scope?: unknown) {
       this[_type] = type;
       this[_binder] = binder;
       this[_scope] = scope;
@@ -136,7 +136,7 @@ export namespace events {
       if (!this[_binder].passive) {
         this[_binder].stopped = new Date();
         this.source.logger.debug(
-          log.message.getCalled(`binder`, "EventBinder", "stopped", [
+          log.message.getCalled(`binder`, "Binder", "stopped", [
             (this[_binder].stopped as Date).toUTCString(),
           ]),
         );
@@ -152,7 +152,7 @@ export namespace events {
       if (!this[_binder].passive) {
         this[_binder].prevented = new Date();
         this.source.logger.debug(
-          log.message.getCalled(`binder`, "EventBinder", "prevented", [
+          log.message.getCalled(`binder`, "Binder", "prevented", [
             (this[_binder].prevented as Date).toUTCString(),
           ]),
         );

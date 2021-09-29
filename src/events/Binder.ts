@@ -1,24 +1,24 @@
 /**
- * @fileoverview Declaration of the EventBinder class.
+ * @fileoverview Declaration of the Binder class.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
  */
 
 import { events as ns0 } from "./Listenable";
-import { events as ns1 } from "./EventPhase";
+import { events as ns1 } from "./Phase";
 export namespace events {
   import Listenable = ns0.Listenable;
-  import EventPhase = ns1.EventPhase;
+  import Phase = ns1.Phase;
 
   /**
    * Class that holds internal event handling state .
    */
-  export class EventBinder {
+  export class Binder {
     /**
      * Event handling phase.
      */
-    phase: EventPhase;
+    phase: Phase;
 
     /**
      * Passive event flag.
@@ -51,8 +51,8 @@ export namespace events {
      * @param source Listenable object that dispatch the event.
      * @param current Listenable object that had the listener attached.
      */
-    constructor(phase: EventPhase, source: Listenable, handler: Listenable) {
-      this.phase = phase || EventPhase.NONE;
+    constructor(phase: Phase, source: Listenable, handler: Listenable) {
+      this.phase = phase || Phase.NONE;
       this.source = source;
       this.handler = handler;
     }

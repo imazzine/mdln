@@ -1,5 +1,5 @@
 /**
- * @fileoverview Declaration of the EventListener class.
+ * @fileoverview Declaration of the Listener class.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
@@ -13,7 +13,7 @@ export namespace events {
    * Helper class for storing certain event callback and its scope in the
    * appropriate listenersMaps map.
    */
-  export class EventListener {
+  export class Listener {
     /**
      * Added callback function.
      */

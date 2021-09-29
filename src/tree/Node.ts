@@ -10,8 +10,6 @@ import { symbolsNS } from "../symbols";
 import { eventsNS } from "../events";
 import { logNS } from "../logs";
 export namespace tree {
-  import ErrorCode = errors.ErrorCode;
-  import ErrorDescription = errors.ErrorDescription;
   import Listenable = eventsNS.Listenable;
   import construct = symbolsNS.construct;
   import destruct = symbolsNS.destruct;
@@ -28,11 +26,14 @@ export namespace tree {
     if (!index) {
       node.logger.error(
         logNS.message.getError(
-          ErrorCode.NODE_INDEX_MISSED,
-          ErrorDescription.NODE_INDEX_MISSED,
+          errors.Code.NODE_INDEX_MISSED,
+          errors.Description.NODE_INDEX_MISSED,
         ),
       );
-      throw new Error(ErrorDescription.NODE_INDEX_MISSED);
+      throw new errors.Error(
+        errors.Code.NODE_INDEX_MISSED,
+        errors.Description.NODE_INDEX_MISSED,
+      );
     } else {
       return index as { parent?: Node; children: Array<Node> };
     }
@@ -48,11 +49,14 @@ export namespace tree {
     if (!~i) {
       parent.logger.error(
         logNS.message.getError(
-          ErrorCode.NODE_CHILD_MISSED,
-          ErrorDescription.NODE_CHILD_MISSED,
+          errors.Code.NODE_CHILD_MISSED,
+          errors.Description.NODE_CHILD_MISSED,
         ),
       );
-      throw new Error(ErrorDescription.NODE_CHILD_MISSED);
+      throw new errors.Error(
+        errors.Code.NODE_CHILD_MISSED,
+        errors.Description.NODE_CHILD_MISSED,
+      );
     }
   }
 

@@ -8,8 +8,8 @@
  */
 
 import { events as ns0 } from "./Event";
-import { events as ns1 } from "./EventPhase";
-import { events as ns2 } from "./EventListener";
+import { events as ns1 } from "./Phase";
+import { events as ns2 } from "./Listener";
 import { events as ns3 } from "./Listenable";
 /**
  * Namespace that provides events related types.
@@ -17,14 +17,13 @@ import { events as ns3 } from "./Listenable";
 export namespace events {
   export import Listenable = ns3.Listenable;
   export import Event = ns0.Event;
-  export import EventPhase = ns1.EventPhase;
+  export import Phase = ns1.Phase;
 }
 
 export namespace eventsNS {
   export import Event = ns0.Event;
-  export import EventPhase = ns1.EventPhase;
-  export import EventListener = ns2.EventListener;
+  export import Phase = ns1.Phase;
+  export import Listener = ns2.Listener;
   export import Listenable = ns3.Listenable;
   export import nodes = ns3.nodes;
-  export import getAncestors = ns3.getAncestors;
 }

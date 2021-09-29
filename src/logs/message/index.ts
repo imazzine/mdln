@@ -7,6 +7,7 @@
  * @license Apache-2.0
  */
 
+import { errors } from "../../errors";
 import { helpers } from "../helpers";
 import { message as ns0 } from "./Type";
 import { message as ns1 } from "./Checkpoint";
@@ -18,7 +19,6 @@ import { message as ns6 } from "./Replaced";
 import { message as ns7 } from "./Removed";
 import { message as ns8 } from "./Called";
 import { message as ns9 } from "./Error";
-import { message as ns10 } from "./Log";
 export namespace message {
   export import Type = ns0.Type;
   export import Checkpoint = ns1.Checkpoint;
@@ -30,7 +30,6 @@ export namespace message {
   export import Removed = ns7.Removed;
   export import Called = ns8.Called;
   export import ErrorLog = ns9.ErrorLog;
-  export import Log = ns10.Log;
 
   /**
    * Returns Checkpoint log message object.
@@ -50,19 +49,19 @@ export namespace message {
 
   /**
    * Returns Changed log message object.
-   * @param level Name of the class where this function called from.
-   * @param field Name of the changed propery.
-   * @param value Value of the property.
+   * @param namespace Changed attribute namespace.
+   * @param attribute Changed attribute name.
+   * @param value Changed attribute value.
    */
   export const getChanged = (
-    level: string,
-    field: string,
+    namespace: string,
+    attribute: string,
     value: unknown,
   ): Changed => {
     const msg = helpers.parseMsg(value);
     const key = Object.keys(msg)[0] as Type;
     const val = msg[key];
-    return new Changed(level, field, val);
+    return new Changed(namespace, attribute, val);
   };
 
   /**
@@ -128,7 +127,10 @@ export namespace message {
    * @param code Error code.
    * @param msg Error
    */
-  export const getError = (code: number, msg: string): ErrorLog => {
+  export const getError = (
+    code: errors.Code | number,
+    msg: string,
+  ): ErrorLog => {
     return new ErrorLog(code, msg);
   };
 }

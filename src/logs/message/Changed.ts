@@ -10,16 +10,16 @@ export namespace message {
    * Monitorable object changed log message type.
    */
   export class Changed {
-    level: string;
-    field: string;
+    namespace: string;
+    attribute: string;
     value: boolean | number | string;
     constructor(
-      level: string,
-      field: string,
+      namespace: string,
+      attribute: string,
       value: boolean | number | string,
     ) {
-      this.level = level;
-      this.field = field;
+      this.namespace = namespace;
+      this.attribute = attribute;
       this.value = value;
     }
   }

@@ -12,8 +12,6 @@ import { logger } from "./logger";
 import { message } from "./message";
 import { thread } from "./thread";
 export namespace log {
-  import ErrorCode = errors.ErrorCode;
-  import ErrorDescription = errors.ErrorDescription;
   import _constructing = symbolsNS._constructing;
   import _constructed = symbolsNS._constructed;
   import _destructing = symbolsNS._destructing;
@@ -78,9 +76,7 @@ export namespace log {
     /**
      * Symbolic field for the object's associated `_logger`.
      */
-    private [_logger]: logger.Logger = new (logger.getConstructor())(
-      this[_uid],
-    );
+    private [_logger]: logger.Logger = new logger.Logger(this[_uid]);
 
     /**
      * Object unique UUID-like identifier.
@@ -143,11 +139,14 @@ export namespace log {
       if (this[_constructed]) {
         this.logger.error(
           message.getError(
-            ErrorCode.CONSTRUCT_CALL,
-            ErrorDescription.CONSTRUCT_CALL,
+            errors.Code.CONSTRUCT_CALL,
+            errors.Description.CONSTRUCT_CALL,
           ),
         );
-        throw new Error(ErrorDescription.CONSTRUCT_CALL);
+        throw new errors.Error(
+          errors.Code.CONSTRUCT_CALL,
+          errors.Description.CONSTRUCT_CALL,
+        );
       } else {
         // run construct thread
         this.logger.debug(
@@ -167,7 +166,7 @@ export namespace log {
           message.getChanged(
             "Monitorable",
             "_logger",
-            logger.isUpdated() ? "updated" : "default",
+            `{logger[${this[_uid]}]}`,
           ),
         );
         this[_constructing] = true;
@@ -232,11 +231,14 @@ export namespace log {
       if (!this[_destructing]) {
         this.logger.error(
           message.getError(
-            ErrorCode.DESTRUCT_CALL,
-            ErrorDescription.DESTRUCT_CALL,
+            errors.Code.DESTRUCT_CALL,
+            errors.Description.DESTRUCT_CALL,
           ),
         );
-        throw new Error(ErrorDescription.DESTRUCT_CALL);
+        throw new errors.Error(
+          errors.Code.DESTRUCT_CALL,
+          errors.Description.DESTRUCT_CALL,
+        );
       } else {
         // delete object from the internal undestructed map
         undestructed.delete(this.uid);
@@ -278,13 +280,16 @@ export namespace log {
         if (!this[_constructing]) {
           this.logger.error(
             message.getError(
-              ErrorCode.CONSTRUCT_IMPL,
-              ErrorDescription.CONSTRUCT_IMPL,
+              errors.Code.CONSTRUCT_IMPL,
+              errors.Description.CONSTRUCT_IMPL,
             ),
           );
           thread.stop();
           // eslint-disable-next-line no-unsafe-finally
-          throw new Error(ErrorDescription.CONSTRUCT_IMPL);
+          throw new errors.Error(
+            errors.Code.CONSTRUCT_IMPL,
+            errors.Description.CONSTRUCT_IMPL,
+          );
         }
 
         // disable construct thread
@@ -339,12 +344,15 @@ export namespace log {
           // TODO (buntarb): cleaning up/restore state here?
           this.logger.error(
             message.getError(
-              ErrorCode.DESTRUCT_IMPL,
-              ErrorDescription.DESTRUCT_IMPL,
+              errors.Code.DESTRUCT_IMPL,
+              errors.Description.DESTRUCT_IMPL,
             ),
           );
           thread.stop();
-          throw new Error(ErrorDescription.DESTRUCT_IMPL);
+          throw new errors.Error(
+            errors.Code.DESTRUCT_IMPL,
+            errors.Description.DESTRUCT_IMPL,
+          );
         }
         this.logger.info(message.getDestructed());
       }

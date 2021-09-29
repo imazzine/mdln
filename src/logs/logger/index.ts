@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * @fileoverview Declaration of the logger constructor logic.
  * @author Artem Lytvynov
@@ -5,38 +7,12 @@
  * @license Apache-2.0
  */
 
-import { logger as l } from "./Logger";
+import { logger as ns1 } from "./Log";
+import { logger as ns0 } from "./Logger";
+import { logger as ns2 } from "./Buffer";
 export namespace logger {
-  let updated = false;
-
-  /**
-   * Global logger constructor.
-   */
-  let _constructor: typeof Logger = l.Logger;
-
-  export import Logger = l.Logger;
-
-  /**
-   * Configures logger constructor in the runtime.
-   */
-  export function setConstructor(constructor: typeof Logger): void {
-    if (!updated) {
-      _constructor = constructor;
-      updated = true;
-    }
-  }
-
-  /**
-   * Returns logger constructor.
-   */
-  export function getConstructor(): typeof Logger {
-    return _constructor;
-  }
-
-  /**
-   * Whether constructor was updated or not.
-   */
-  export function isUpdated(): boolean {
-    return updated;
-  }
+  export import Log = ns1.Log;
+  export import Logger = ns0.Logger;
+  export import Buffer = ns2.Buffer;
+  export import setBuffer = ns2.setBuffer;
 }

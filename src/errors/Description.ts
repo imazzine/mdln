@@ -1,5 +1,5 @@
 /**
- * @fileoverview Declaration of the ErrorDescription enum.
+ * @fileoverview Declaration of the Description enum.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
@@ -9,7 +9,7 @@ export namespace errors {
   /**
    * Errors descriptions enum.
    */
-  export enum ErrorDescription {
+  export enum Description {
     CONSTRUCT_IMPL = "super[construct] call wasn't implemented",
     CONSTRUCT_CALL = "[construct] method could not be explicitly called",
     DESTRUCT_IMPL = "super[destruct] call wasn't implemented",

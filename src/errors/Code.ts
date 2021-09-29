@@ -1,5 +1,5 @@
 /**
- * @fileoverview Declaration of the ErrorCode enum.
+ * @fileoverview Declaration of the Code enum.
  * @author Artem Lytvynov
  * @copyright Artem Lytvynov
  * @license Apache-2.0
@@ -9,7 +9,7 @@ export namespace errors {
   /**
    * Errors codes enum.
    */
-  export enum ErrorCode {
+  export enum Code {
     CONSTRUCT_IMPL = 1,
     CONSTRUCT_CALL = 2,
     DESTRUCT_IMPL = 3,
