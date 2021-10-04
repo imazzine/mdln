@@ -103,6 +103,7 @@ export namespace logger {
       | boolean
       | number
       | string
+      | Date
       | Checkpoint
       | Constructed
       | Changed

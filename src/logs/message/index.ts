@@ -113,7 +113,7 @@ export namespace message {
     args: Array<unknown>,
     global = false,
   ): Called => {
-    const res: Array<boolean | number | string> = [];
+    const res: Array<boolean | number | string | Date> = [];
     args.forEach((value) => {
       const msg = helpers.parseMsg(value);
       const val = msg[Object.keys(msg)[0]];

@@ -18,6 +18,7 @@ export namespace message {
     string = "string",
     function = "function",
     object = "object",
+    date = "date",
     checkpoint = "checkpoint",
     constructed = "constructed",
     changed = "changed",

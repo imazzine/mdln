@@ -41,20 +41,23 @@ export namespace logger {
     /**
      * Sync debouncer.
      */
-    private [_debouncer] = debounce(this[_timeout], async () => {
-      const logs: Set<Log> =
-        this[_errors].size === 0
-          ? this[_buffer]
-          : new Set([...this[_errors], ...this[_buffer]]);
-      this[_buffer] = new Set();
-      this[_errors] = new Set();
-      try {
-        await this[sync](logs);
-      } catch (error) {
-        this[_errors] = logs;
-        throw error;
-      }
-    });
+    private [_debouncer]: debounce<() => Promise<void>> = debounce(
+      this[_timeout],
+      async () => {
+        const logs: Set<Log> =
+          this[_errors].size === 0
+            ? this[_buffer]
+            : new Set([...this[_errors], ...this[_buffer]]);
+        this[_buffer] = new Set();
+        this[_errors] = new Set();
+        try {
+          await this[sync](logs);
+        } catch (error) {
+          this[_errors] = logs;
+          throw error;
+        }
+      },
+    );
 
     /**
      * Set sync debouncer timeout.

@@ -11,7 +11,7 @@ import { helpers } from "./helpers";
 import { logger } from "./logger";
 import { message } from "./message";
 import { thread } from "./thread";
-export namespace log {
+export namespace logs {
   import _constructing = symbolsNS._constructing;
   import _constructed = symbolsNS._constructed;
   import _destructing = symbolsNS._destructing;
@@ -28,7 +28,7 @@ export namespace log {
   /**
    * Map of the undestructed destructable objects.
    */
-  const undestructed: Map<string, Monitorable> = new Map();
+  export const undestructed: Map<string, Monitorable> = new Map();
 
   /**
    * Class that provides the basic layer for the `mdln`-objects. It responds for
@@ -135,7 +135,6 @@ export namespace log {
      * ```
      */
     protected [construct](): void {
-      this.logger.trace(message.getCheckpoint("construct", "Monitorable"));
       if (this[_constructed]) {
         this.logger.error(
           message.getError(
@@ -149,26 +148,6 @@ export namespace log {
         );
       } else {
         // run construct thread
-        this.logger.debug(
-          message.getChanged("Monitorable", "_uid", this[_uid]),
-        );
-        this.logger.debug(
-          message.getChanged(
-            "Monitorable",
-            "_created",
-            this[_created].toUTCString(),
-          ),
-        );
-        this.logger.debug(
-          message.getChanged("Monitorable", "_stack", this[_stack]),
-        );
-        this.logger.debug(
-          message.getChanged(
-            "Monitorable",
-            "_logger",
-            `{logger[${this[_uid]}]}`,
-          ),
-        );
         this[_constructing] = true;
         this.logger.debug(
           message.getChanged(
@@ -176,10 +155,6 @@ export namespace log {
             "_constructing",
             this[_constructing],
           ),
-        );
-        this[_constructed] = false;
-        this.logger.debug(
-          message.getChanged("Monitorable", "_constructed", this[_constructed]),
         );
         this[_destructing] = false;
         this.logger.debug(
@@ -272,9 +247,24 @@ export namespace log {
      */
     public constructor() {
       thread.start();
+      this.logger.trace(message.getCheckpoint("construct", "Monitorable"));
+      this.logger.debug(message.getChanged("Monitorable", "_uid", this[_uid]));
+      this.logger.debug(
+        message.getChanged("Monitorable", "_created", this[_created]),
+      );
+      this.logger.debug(
+        message.getChanged("Monitorable", "_stack", this[_stack]),
+      );
+      this.logger.debug(
+        message.getChanged("Monitorable", "_logger", `{logger[${this[_uid]}]}`),
+      );
 
       // safe run [construct] hierarchy
       try {
+        this[_constructed] = false;
+        this.logger.debug(
+          message.getChanged("Monitorable", "_constructed", this[_constructed]),
+        );
         this[construct]();
       } finally {
         if (!this[_constructing]) {

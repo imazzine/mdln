@@ -12,11 +12,11 @@ export namespace message {
   export class Changed {
     namespace: string;
     attribute: string;
-    value: boolean | number | string;
+    value: boolean | number | string | Date;
     constructor(
       namespace: string,
       attribute: string,
-      value: boolean | number | string,
+      value: boolean | number | string | Date,
     ) {
       this.namespace = namespace;
       this.attribute = attribute;

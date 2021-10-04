@@ -16,7 +16,7 @@ export namespace helpers {
    */
   export function parseMsg(
     message: undefined | symbol | boolean | bigint | number | string | unknown,
-  ): { [type: string]: boolean | number | string } {
+  ): { [type: string]: boolean | number | string | Date } {
     switch (typeof message) {
       case "undefined":
         return { [msg.Type.undefined]: msg.Type.undefined };
@@ -33,12 +33,16 @@ export namespace helpers {
       case "function":
         return { [msg.Type.function]: message.toString() };
       case "object":
-        try {
-          return { [msg.Type.object]: JSON.stringify(message) };
-        } catch (err) {
-          return message
-            ? { [msg.Type.object]: message.toString() }
-            : { [msg.Type.object]: "null" };
+        if (message instanceof Date) {
+          return { [msg.Type.date]: message };
+        } else {
+          try {
+            return { [msg.Type.object]: JSON.stringify(message) };
+          } catch (err) {
+            return message
+              ? { [msg.Type.object]: message.toString() }
+              : { [msg.Type.object]: "null" };
+          }
         }
     }
   }

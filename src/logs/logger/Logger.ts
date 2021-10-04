@@ -30,7 +30,6 @@ export namespace logger {
   import Log = ns0.Log;
   import _level = symbolsNS._level;
   import _uid = symbolsNS._uid;
-  const buffer = ns1.buffer;
 
   /**
    * Core logger class. Provides the basic implementation for the logger object.
@@ -42,6 +41,7 @@ export namespace logger {
   export class Logger {
     private [_uid]: string;
     private [_level]: Level;
+    private buffer: ns1.Buffer = ns1.buffer;
 
     /**
      * Unique identifier.
@@ -88,7 +88,7 @@ export namespace logger {
      */
     public trace(message: any): void {
       if (message instanceof Checkpoint) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(
             this,
             thread.uid(),
@@ -102,7 +102,7 @@ export namespace logger {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
         const val = msg[key];
-        void buffer.add(
+        void this.buffer.add(
           new Log(
             this,
             thread.uid(),
@@ -123,18 +123,20 @@ export namespace logger {
      */
     public debug(message: any): void {
       if (message instanceof Changed) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.changed, Level.DEBUG, message),
         );
       } else if (message instanceof Called) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.called, Level.DEBUG, message),
         );
       } else {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
         const val = msg[Object.keys(msg)[0]];
-        void buffer.add(new Log(this, thread.uid(), key, Level.DEBUG, val));
+        void this.buffer.add(
+          new Log(this, thread.uid(), key, Level.DEBUG, val),
+        );
       }
     }
 
@@ -146,30 +148,30 @@ export namespace logger {
      */
     public info(message: any): void {
       if (message instanceof Constructed) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.constructed, Level.INFO, message),
         );
       } else if (message instanceof Destructed) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.destructed, Level.INFO, message),
         );
       } else if (message instanceof Inserted) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.inserted, Level.INFO, message),
         );
       } else if (message instanceof Replaced) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.replaced, Level.INFO, message),
         );
       } else if (message instanceof Removed) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(this, thread.uid(), Type.removed, Level.INFO, message),
         );
       } else {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
         const val = msg[Object.keys(msg)[0]];
-        void buffer.add(new Log(this, thread.uid(), key, Level.INFO, val));
+        void this.buffer.add(new Log(this, thread.uid(), key, Level.INFO, val));
       }
     }
 
@@ -183,7 +185,7 @@ export namespace logger {
       const msg = helpers.parseMsg(message);
       const key = Object.keys(msg)[0] as Type;
       const val = msg[Object.keys(msg)[0]];
-      void buffer.add(new Log(this, thread.uid(), key, Level.WARN, val));
+      void this.buffer.add(new Log(this, thread.uid(), key, Level.WARN, val));
     }
 
     /**
@@ -194,7 +196,7 @@ export namespace logger {
      */
     public error(message: any): void {
       if (message instanceof ErrorLog) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(
             this,
             thread.uid(),
@@ -208,7 +210,7 @@ export namespace logger {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
         const val = msg[Object.keys(msg)[0]];
-        void buffer.add(
+        void this.buffer.add(
           new Log(
             this,
             thread.uid(),
@@ -229,7 +231,7 @@ export namespace logger {
      */
     public fatal(message: any): void {
       if (message instanceof ErrorLog) {
-        void buffer.add(
+        void this.buffer.add(
           new Log(
             this,
             thread.uid(),
@@ -243,7 +245,7 @@ export namespace logger {
         const msg = helpers.parseMsg(message);
         const key = Object.keys(msg)[0] as Type;
         const val = msg[Object.keys(msg)[0]];
-        void buffer.add(
+        void this.buffer.add(
           new Log(
             this,
             thread.uid(),
