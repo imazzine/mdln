@@ -41,6 +41,7 @@ export namespace logger {
     private [_type]: Type;
     private [_stack]: null | string;
     private [_message]:
+      | undefined
       | boolean
       | number
       | string
@@ -100,6 +101,7 @@ export namespace logger {
      * Log
      */
     public get message():
+      | undefined
       | boolean
       | number
       | string
@@ -129,6 +131,7 @@ export namespace logger {
       type: Type,
       level: Level,
       message:
+        | undefined
         | boolean
         | number
         | string

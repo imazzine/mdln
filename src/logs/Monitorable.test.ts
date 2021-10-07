@@ -10,6 +10,7 @@ import { errors } from "../errors";
 import { logs, logNS } from "./index";
 import { message } from "./message";
 import construct = symbolsNS.construct;
+import destruct = symbolsNS.destruct;
 
 /**
  * Logs buffer class for tests.
@@ -1560,5 +1561,598 @@ describe("Manual TestMonitorable[construct] call throw", () => {
     expect((error.message as message.ErrorLog).message).toEqual(
       errors.Description.CONSTRUCT_CALL,
     );
+  });
+});
+
+describe("Monitorable class destruct", () => {
+  const set: Set<logs.Log> = new Set();
+  let add: jest.SpyInstance<Promise<boolean>, [log: logs.Log]>;
+  let buffer: TestBuffer;
+  let iter: IterableIterator<logs.Log>;
+  let obj: logs.Monitorable;
+  let thread: null | string;
+
+  beforeAll(() => {
+    // mock buffer for test
+    buffer = new TestBuffer();
+    add = jest.spyOn(buffer, "add").mockImplementation((log) => {
+      set.add(log);
+      return new Promise<boolean>((resolve) => {
+        resolve(true);
+      });
+    }) as jest.SpyInstance<Promise<boolean>, [log: logs.Log]>;
+    logs.setBuffer(buffer);
+    obj = new logs.Monitorable();
+  });
+
+  test("destructor method could be called", () => {
+    expect(() => {
+      obj.destructor();
+    }).not.toThrow();
+  });
+
+  test("destruct thread is logged", () => {
+    expect(add).toHaveBeenCalled();
+    expect(set.size).toEqual(19);
+    iter = set.values();
+    for (let i = 0; i < 13; i++) {
+      iter.next();
+    }
+  });
+
+  test("_destructing changed log message (14) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // save thread for further asserts
+    thread = changed.thread;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(14, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "Monitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "_destructing",
+    );
+    expect((changed.message as message.Changed).value).toEqual(true);
+  });
+
+  test("checkpoint log message (15) is valid", () => {
+    // fetch first message
+    const checkpoint: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(15, checkpoint);
+    // assert logger
+    expect(checkpoint.logger instanceof logs.Logger).toBeTruthy();
+    expect(checkpoint.logger.uid).toEqual(obj.uid);
+    expect(checkpoint.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(checkpoint.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(typeof checkpoint.thread === "string").toBeTruthy();
+    expect(reUID.test(checkpoint.thread as string)).toBeTruthy();
+    // assert stack
+    expect(checkpoint.stack).toBeDefined();
+    expect(typeof checkpoint.stack === "string").toBeTruthy();
+    expect((checkpoint.stack as string).length).toBeGreaterThan(0);
+    expect((checkpoint.stack as string).indexOf("Checkpoint")).toEqual(0);
+    // assert type
+    expect(checkpoint.type).toEqual(logs.Type.checkpoint);
+    // assert level
+    expect(checkpoint.level).toEqual(logs.Level.TRACE);
+    // assert message
+    expect(checkpoint.message).toBeDefined();
+    expect(checkpoint.message instanceof message.Checkpoint).toBeTruthy();
+    expect((checkpoint.message as message.Checkpoint).name).toEqual("destruct");
+    expect((checkpoint.message as message.Checkpoint).value).toEqual(
+      "Monitorable",
+    );
+  });
+
+  test("undestructed.delete called log message (16) is valid", () => {
+    // fetch first message
+    const called: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(16, called);
+    // assert logger
+    expect(called.logger instanceof logs.Logger).toBeTruthy();
+    expect(called.logger.uid).toEqual(obj.uid);
+    expect(called.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(called.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(called.thread).toEqual(thread);
+    // assert stack
+    expect(called.stack).toBeDefined();
+    expect(called.stack).toBeNull();
+    // assert type
+    expect(called.type).toEqual(logs.Type.called);
+    // assert level
+    expect(called.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(called.message).toBeDefined();
+    expect(called.message instanceof message.Called).toBeTruthy();
+    expect((called.message as message.Called).name).toEqual("undestructed");
+    expect((called.message as message.Called).type).toEqual("Map");
+    expect((called.message as message.Called).method).toEqual("delete");
+    expect((called.message as message.Called).args).toEqual([obj.uid]);
+  });
+
+  test("_destructing changed log message (17) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(17, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "Monitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "_destructing",
+    );
+    expect((changed.message as message.Changed).value).toEqual(false);
+  });
+
+  test("_destructing changed log message (18) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(18, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "Monitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "_destructed",
+    );
+    expect((changed.message as message.Changed).value instanceof Date).toEqual(
+      true,
+    );
+  });
+
+  test("object constructed log message (19) is valid", () => {
+    // fetch first message
+    const destructed: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(19, destructed);
+    // assert logger
+    expect(destructed.logger instanceof logs.Logger).toBeTruthy();
+    expect(destructed.logger.uid).toEqual(obj.uid);
+    expect(destructed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(destructed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(destructed.thread).toEqual(thread);
+    // assert stack
+    expect(destructed.stack).toBeDefined();
+    expect(destructed.stack).toBeNull();
+    // assert type
+    expect(destructed.type).toEqual(logs.Type.destructed);
+    // assert level
+    expect(destructed.level).toEqual(logs.Level.INFO);
+    // assert message
+    expect(destructed.message).toBeDefined();
+    expect(destructed.message instanceof message.Destructed).toBeTruthy();
+  });
+
+  test("object is missed in undestructable map", () => {
+    expect(logNS.undestructed.get(obj.uid)).toBeUndefined();
+  });
+
+  test("destructor method warn on destructed object", () => {
+    expect(() => {
+      obj.destructor();
+    }).not.toThrow();
+  });
+
+  test("warning is logged", () => {
+    expect(set.size).toEqual(20);
+  });
+
+  test("warning log message (20) is valid", () => {
+    // fetch first message
+    const warning: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(20, warning);
+    // assert logger
+    expect(warning.logger instanceof logs.Logger).toBeTruthy();
+    expect(warning.logger.uid).toEqual(obj.uid);
+    expect(warning.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(warning.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(warning.thread).toBeDefined();
+    expect(warning.thread).not.toBeNull();
+    expect(warning.thread).not.toEqual(thread);
+    // assert stacks
+    expect(warning.stack).toBeNull();
+    // assert type
+    expect(warning.type).toEqual(logs.Type.string);
+    // assert level
+    expect(warning.level).toEqual(logs.Level.WARN);
+    // assert message
+    expect(warning.message).toEqual(`{${obj.uid}} is alredy destructed`);
+  });
+});
+
+describe("TestMonitorable class destruct", () => {
+  /**
+   * Monitorable child class to test.
+   */
+  class TestMonitorable extends logs.Monitorable {
+    /**
+     * Additional property to test logging.
+     */
+    public testProperty: undefined | string;
+
+    /**
+     * @override
+     */
+    protected [construct]() {
+      super[construct]();
+      this.logger.trace(logs.getCheckpoint("construct", "TestMonitorable"));
+
+      // init additional property and log this
+      this.testProperty = "testProperty value";
+      this.logger.debug(
+        logs.getChanged("TestMonitorable", "testProperty", this.testProperty),
+      );
+    }
+
+    /**
+     * @override
+     */
+    protected [destruct]() {
+      this.logger.trace(logs.getCheckpoint("destruct", "TestMonitorable"));
+
+      // clear additional property and log this
+      this.testProperty = undefined;
+      this.logger.debug(
+        logs.getChanged("TestMonitorable", "testProperty", undefined),
+      );
+      super[destruct]();
+    }
+  }
+
+  const set: Set<logs.Log> = new Set();
+  let add: jest.SpyInstance<Promise<boolean>, [log: logs.Log]>;
+  let buffer: TestBuffer;
+  let iter: IterableIterator<logs.Log>;
+  let obj: logs.Monitorable;
+  let thread: null | string;
+
+  beforeAll(() => {
+    // mock buffer for test
+    buffer = new TestBuffer();
+    add = jest.spyOn(buffer, "add").mockImplementation((log) => {
+      set.add(log);
+      return new Promise<boolean>((resolve) => {
+        resolve(true);
+      });
+    }) as jest.SpyInstance<Promise<boolean>, [log: logs.Log]>;
+    logs.setBuffer(buffer);
+    obj = new TestMonitorable();
+  });
+
+  test("destructor method could be called", () => {
+    expect(() => {
+      obj.destructor();
+    }).not.toThrow();
+  });
+
+  test("destruct thread is logged", () => {
+    expect(add).toHaveBeenCalled();
+    expect(set.size).toEqual(23);
+    iter = set.values();
+    for (let i = 0; i < 15; i++) {
+      iter.next();
+    }
+  });
+
+  test("_destructing changed log message (16) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // save thread for further asserts
+    thread = changed.thread;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(16, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "Monitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "_destructing",
+    );
+    expect((changed.message as message.Changed).value).toEqual(true);
+  });
+
+  test("checkpoint log message (17) is valid", () => {
+    // fetch first message
+    const checkpoint: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(17, checkpoint);
+    // assert logger
+    expect(checkpoint.logger instanceof logs.Logger).toBeTruthy();
+    expect(checkpoint.logger.uid).toEqual(obj.uid);
+    expect(checkpoint.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(checkpoint.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(typeof checkpoint.thread === "string").toBeTruthy();
+    expect(reUID.test(checkpoint.thread as string)).toBeTruthy();
+    // assert stack
+    expect(checkpoint.stack).toBeDefined();
+    expect(typeof checkpoint.stack === "string").toBeTruthy();
+    expect((checkpoint.stack as string).length).toBeGreaterThan(0);
+    expect((checkpoint.stack as string).indexOf("Checkpoint")).toEqual(0);
+    // assert type
+    expect(checkpoint.type).toEqual(logs.Type.checkpoint);
+    // assert level
+    expect(checkpoint.level).toEqual(logs.Level.TRACE);
+    // assert message
+    expect(checkpoint.message).toBeDefined();
+    expect(checkpoint.message instanceof message.Checkpoint).toBeTruthy();
+    expect((checkpoint.message as message.Checkpoint).name).toEqual("destruct");
+    expect((checkpoint.message as message.Checkpoint).value).toEqual(
+      "TestMonitorable",
+    );
+  });
+
+  test("testProperty changed log message (18) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // save thread for further asserts
+    thread = changed.thread;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(18, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "TestMonitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "testProperty",
+    );
+    expect((changed.message as message.Changed).value).toBeUndefined();
+  });
+
+  test("checkpoint log message (19) is valid", () => {
+    // fetch first message
+    const checkpoint: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(19, checkpoint);
+    // assert logger
+    expect(checkpoint.logger instanceof logs.Logger).toBeTruthy();
+    expect(checkpoint.logger.uid).toEqual(obj.uid);
+    expect(checkpoint.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(checkpoint.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(typeof checkpoint.thread === "string").toBeTruthy();
+    expect(reUID.test(checkpoint.thread as string)).toBeTruthy();
+    // assert stack
+    expect(checkpoint.stack).toBeDefined();
+    expect(typeof checkpoint.stack === "string").toBeTruthy();
+    expect((checkpoint.stack as string).length).toBeGreaterThan(0);
+    expect((checkpoint.stack as string).indexOf("Checkpoint")).toEqual(0);
+    // assert type
+    expect(checkpoint.type).toEqual(logs.Type.checkpoint);
+    // assert level
+    expect(checkpoint.level).toEqual(logs.Level.TRACE);
+    // assert message
+    expect(checkpoint.message).toBeDefined();
+    expect(checkpoint.message instanceof message.Checkpoint).toBeTruthy();
+    expect((checkpoint.message as message.Checkpoint).name).toEqual("destruct");
+    expect((checkpoint.message as message.Checkpoint).value).toEqual(
+      "Monitorable",
+    );
+  });
+
+  test("undestructed.delete called log message (20) is valid", () => {
+    // fetch first message
+    const called: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(20, called);
+    // assert logger
+    expect(called.logger instanceof logs.Logger).toBeTruthy();
+    expect(called.logger.uid).toEqual(obj.uid);
+    expect(called.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(called.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(called.thread).toEqual(thread);
+    // assert stack
+    expect(called.stack).toBeDefined();
+    expect(called.stack).toBeNull();
+    // assert type
+    expect(called.type).toEqual(logs.Type.called);
+    // assert level
+    expect(called.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(called.message).toBeDefined();
+    expect(called.message instanceof message.Called).toBeTruthy();
+    expect((called.message as message.Called).name).toEqual("undestructed");
+    expect((called.message as message.Called).type).toEqual("Map");
+    expect((called.message as message.Called).method).toEqual("delete");
+    expect((called.message as message.Called).args).toEqual([obj.uid]);
+  });
+
+  test("_destructing changed log message (21) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(21, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "Monitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "_destructing",
+    );
+    expect((changed.message as message.Changed).value).toEqual(false);
+  });
+
+  test("_destructing changed log message (22) is valid", () => {
+    // fetch first message
+    const changed: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(22, changed);
+    // assert logger
+    expect(changed.logger instanceof logs.Logger).toBeTruthy();
+    expect(changed.logger.uid).toEqual(obj.uid);
+    expect(changed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(changed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(changed.thread).toEqual(thread);
+    // assert stack
+    expect(changed.stack).toBeDefined();
+    expect(changed.stack).toBeNull();
+    // assert type
+    expect(changed.type).toEqual(logs.Type.changed);
+    // assert level
+    expect(changed.level).toEqual(logs.Level.DEBUG);
+    // assert message
+    expect(changed.message).toBeDefined();
+    expect(changed.message instanceof message.Changed).toBeTruthy();
+    expect((changed.message as message.Changed).namespace).toEqual(
+      "Monitorable",
+    );
+    expect((changed.message as message.Changed).attribute).toEqual(
+      "_destructed",
+    );
+    expect((changed.message as message.Changed).value instanceof Date).toEqual(
+      true,
+    );
+  });
+
+  test("object constructed log message (23) is valid", () => {
+    // fetch first message
+    const destructed: logs.Log = iter.next().value as logs.Log;
+    // assert buffer call
+    expect(add).toHaveBeenNthCalledWith(23, destructed);
+    // assert logger
+    expect(destructed.logger instanceof logs.Logger).toBeTruthy();
+    expect(destructed.logger.uid).toEqual(obj.uid);
+    expect(destructed.logger.level).toEqual(logs.Level.TRACE);
+    // assert timestamp
+    expect(destructed.timestamp.getTime()).toBeLessThanOrEqual(Date.now());
+    // assert thread
+    expect(destructed.thread).toEqual(thread);
+    // assert stack
+    expect(destructed.stack).toBeDefined();
+    expect(destructed.stack).toBeNull();
+    // assert type
+    expect(destructed.type).toEqual(logs.Type.destructed);
+    // assert level
+    expect(destructed.level).toEqual(logs.Level.INFO);
+    // assert message
+    expect(destructed.message).toBeDefined();
+    expect(destructed.message instanceof message.Destructed).toBeTruthy();
+  });
+
+  test("object is missed in undestructable map", () => {
+    expect(logNS.undestructed.get(obj.uid)).toBeUndefined();
   });
 });

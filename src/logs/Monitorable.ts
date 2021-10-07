@@ -222,15 +222,11 @@ export namespace logs {
         );
         this[_destructing] = false;
         this.logger.debug(
-          message.getChanged(
-            "Destructible",
-            "_destructing",
-            this[_destructing],
-          ),
+          message.getChanged("Monitorable", "_destructing", this[_destructing]),
         );
         this[_destructed] = new Date();
         this.logger.debug(
-          message.getChanged("Destructible", "_destructed", this[_destructed]),
+          message.getChanged("Monitorable", "_destructed", this[_destructed]),
         );
       }
     }
@@ -315,18 +311,15 @@ export namespace logs {
         // enable destruct thread
         this[_destructing] = true;
         this.logger.debug(
-          message.getChanged(
-            "Destructible",
-            "_destructing",
-            this[_destructing],
-          ),
+          message.getChanged("Monitorable", "_destructing", this[_destructing]),
         );
 
         // safe run [destruct] hierarchy
         try {
           this[destruct]();
-        } finally {
+        } catch (err) {
           thread.stop();
+          throw err;
         }
 
         // assert destruct result

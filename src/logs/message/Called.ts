@@ -13,13 +13,13 @@ export namespace message {
     name: string;
     type: string;
     method: string;
-    args: Array<boolean | number | string | Date>;
+    args: Array<undefined | boolean | number | string | Date>;
     global: boolean;
     constructor(
       name: string,
       type: string,
       method: string,
-      args: Array<boolean | number | string | Date>,
+      args: Array<undefined | boolean | number | string | Date>,
       global = false,
     ) {
       this.name = name;

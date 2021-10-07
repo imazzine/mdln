@@ -16,10 +16,10 @@ export namespace helpers {
    */
   export function parseMsg(
     message: undefined | symbol | boolean | bigint | number | string | unknown,
-  ): { [type: string]: boolean | number | string | Date } {
+  ): { [type: string]: undefined | boolean | number | string | Date } {
     switch (typeof message) {
       case "undefined":
-        return { [msg.Type.undefined]: msg.Type.undefined };
+        return { [msg.Type.undefined]: undefined };
       case "symbol":
         return { [msg.Type.symbol]: msg.Type.symbol };
       case "bigint":
