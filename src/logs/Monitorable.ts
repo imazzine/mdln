@@ -318,6 +318,10 @@ export namespace logs {
         try {
           this[destruct]();
         } catch (err) {
+          // log unhandled error
+          this.logger.error(
+            message.getError(errors.Code.UNHANDLED_ERR, (err as Error).message),
+          );
           thread.stop();
           throw err;
         }

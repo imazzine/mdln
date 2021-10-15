@@ -10,14 +10,13 @@ export namespace errors {
    * Errors codes enum.
    */
   export enum Code {
-    CONSTRUCT_IMPL = 1,
-    CONSTRUCT_CALL = 2,
-    DESTRUCT_IMPL = 3,
-    DESTRUCT_CALL = 4,
-
-    LISTENERS_MAP_MISSED = 5,
-
-    NODE_INDEX_MISSED = 6,
-    NODE_CHILD_MISSED = 7,
+    UNHANDLED_ERR = 1,
+    CONSTRUCT_IMPL = 2,
+    CONSTRUCT_CALL = 3,
+    DESTRUCT_IMPL = 4,
+    DESTRUCT_CALL = 5,
+    LISTENERS_MAP_MISSED = 6,
+    NODE_INDEX_MISSED = 7,
+    NODE_CHILD_MISSED = 8,
   }
 }
