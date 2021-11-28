@@ -1,35 +1,28 @@
 /**
+ * @fileoverview Index file (entry point).
+ * @author Artem Lytvynov
+ * @copyright Artem Lytvynov
+ * @license Apache-2.0
+ *
  * [[include:README.md]]
  */
 
-import Errors from "./enums/Errors";
-import LogLevel from "./enums/LogLevel";
-import EventPhase from "./enums/EventPhase";
-
-import getUid from "./helpers/getUid";
-import getStack from "./helpers/getStack";
-import setLevel from "./helpers/setLevel";
-import setLogger from "./helpers/setLogger";
-
-import Logger from "./types/public/Logger";
-import Event from "./types/public/Event";
-import Monitorable from "./types/public/Monitorable";
-import Disposable from "./types/public/Disposable";
-import Listenable from "./types/public/Listenable";
-import Node from "./types/public/Node";
-
-export {
-  getUid,
-  getStack,
-  setLevel,
-  setLogger,
-  Errors,
-  LogLevel,
-  EventPhase,
-  Logger,
-  Event,
+import { errors } from "./errors";
+import { logs, logNS } from "./logs";
+import { events, eventsNS } from "./events";
+import { tree } from "./tree";
+import { symbols } from "./symbols";
+import Monitorable = logNS.Monitorable;
+import Listenable = eventsNS.Listenable;
+import Node = tree.Node;
+export default {
+  errors,
+  events,
+  logs,
+  symbols,
+  tree,
   Monitorable,
-  Disposable,
   Listenable,
   Node,
 };
+export { errors, events, logs, symbols, tree, Monitorable, Listenable, Node };
